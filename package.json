@@ -1,6 +1,7 @@
 {
-  "name": "omniget",
-  "version": "0.16.1",
+  "name": "libreget",
+  "version": "0.16.7",
+  "private": true,
   "description": "",
   "type": "module",
   "packageManager": "pnpm@10.29.3",
@@ -23,6 +24,9 @@
     "extension:sync": "node browser-extension/sync.mjs",
     "clean:cargo": "cargo sweep -t 3 -r src-tauri",
     "clean:cargo:all": "cargo sweep -s -r src-tauri",
+    "fmt:rs": "cargo fmt --manifest-path src-tauri/Cargo.toml --all",
+    "check:fmt": "cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check",
+    "prepare": "git config core.hooksPath .githooks 2>/dev/null || true",
     "test": "vitest run",
     "test:watch": "vitest"
   },

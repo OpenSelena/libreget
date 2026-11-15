@@ -1,4 +1,4 @@
-use omniget_core::core::tools::{calameo, gallery, gdocs, gslides, slides};
+use libreget_core::core::tools::{calameo, gallery, gdocs, gslides, slides};
 
 use super::{err, progress};
 

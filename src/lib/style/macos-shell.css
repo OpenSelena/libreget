@@ -1,5 +1,5 @@
 /*
- * OmniGet shell — window chrome in the macOS idiom.
+ * LibreGet shell — window chrome in the macOS idiom.
  *
  *   ┌──────────────┬────────────────────────────────────────────┐
  *   │ ●●●          │  Title            [segmented]   [⌕ search]  │  ← titlebar/toolbar (glass)
@@ -35,7 +35,8 @@
   align-items: center;
   gap: var(--space-3);
   height: var(--titlebar-height);
-  padding: 0 calc(var(--pane-inset) + var(--space-2)) 0 var(--space-4);
+  margin-inline-end: var(--pane-inset);
+  padding: 0 var(--space-4);
   background: transparent;
   flex-shrink: 0;
   user-select: none;
@@ -175,13 +176,13 @@
 
 .mac-search-label {
   flex: 1;
-  text-align: left;
+  text-align: start;
   font-size: var(--text-base);
   font-weight: 400;
 }
 
 .mac-search-field .kbd {
-  margin-left: auto;
+  margin-inline-start: auto;
 }
 
 @media (hover: hover) {
@@ -208,6 +209,11 @@
     justify-content: center;
   }
 
+  .mac-search-glyph {
+    width: 12px;
+    height: 12px;
+  }
+
   .mac-search-label,
   .mac-search-field .kbd {
     display: none;
@@ -216,12 +222,7 @@
 
 /* Windows and Linux keep the native title bar: `titleBarStyle: Overlay` is
    macOS-only in tauri-runtime-wry, so the OS draws its own bar with the
-   window controls *above* the webview. Nothing overlaps our toolbar there,
-   which is why no space is reserved on the trailing edge. */
-[data-platform="other"] .mac-titlebar {
-  padding-right: calc(var(--pane-inset) + var(--space-2));
-}
-
+   window controls *above* the webview. Nothing overlaps our toolbar there. */
 [data-platform="other"] .mac-source-list-drag {
   height: var(--space-3);
 }
@@ -421,7 +422,8 @@
     inset 0 0 0 var(--hairline) var(--content-border),
     inset 0 1px 0 color-mix(in srgb, var(--secondary) 5%, transparent),
     0 1px 2px rgba(var(--shadow-ink), var(--elev-alpha-1));
-  margin: 0 var(--pane-inset) var(--pane-inset) 0;
+  margin-block: 0 var(--pane-inset);
+  margin-inline: 0 var(--pane-inset);
   overflow: hidden;
   position: relative;
 }
@@ -862,10 +864,6 @@
   gap: var(--space-3);
 }
 
-.downloads-mac .downloads-header:not(:has(.downloads-stats)) {
-  justify-content: flex-end;
-}
-
 .downloads-mac .downloads-stats {
   font-size: var(--text-sm);
   color: var(--text-dim);
@@ -952,54 +950,52 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: var(--space-5);
+  justify-content: flex-start;
   position: relative;
-  padding: var(--space-6) var(--space-5) var(--space-8);
+  padding: var(--space-6) var(--space-5);
+  overflow-x: hidden;
+  overflow-y: auto;
   isolation: isolate;
 }
 
+.home-stage-inner {
+  margin: auto 0;
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.home-stage-hero {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  transition: filter var(--duration-base) var(--ease-out), opacity var(--duration-base) var(--ease-out);
+}
+
+.home-stage-hero--detecting {
+  filter: blur(6px);
+  opacity: 0.78;
+}
+
 /* one warm light behind the mascot — the single decorative moment of the page */
-.home-stage::before {
+.home-stage-hero::before {
   content: "";
   position: absolute;
-  top: 8%;
+  top: 50%;
   left: 50%;
-  width: min(560px, 80%);
+  width: min(560px, 100%);
   aspect-ratio: 1.4;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   border-radius: 50%;
   background: radial-gradient(closest-side, var(--accent-glow), transparent 70%);
   opacity: 0.9;
   pointer-events: none;
   z-index: -1;
-}
-
-.home-stage-head {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-2);
-  text-align: center;
-}
-
-.home-stage-title {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: var(--text-3xl);
-  line-height: var(--leading-3xl);
-  font-weight: 700;
-  letter-spacing: var(--track-tight);
-  color: var(--text);
-}
-
-.home-stage-copy {
-  margin: 0;
-  max-width: 34rem;
-  text-align: center;
-  font-size: var(--text-md);
-  line-height: var(--leading-md);
-  color: var(--text-muted);
 }
 
 .home-secondary {
@@ -1042,19 +1038,6 @@
   outline-offset: var(--focus-ring-offset);
 }
 
-.home-value {
-  margin: 0;
-  font-size: var(--text-sm);
-  color: var(--text-dim);
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-}
-
-.home-value strong {
-  font-weight: 600;
-  color: var(--text-muted);
-}
-
 .home-mac-workspace {
   display: flex;
   flex-direction: column;
@@ -1068,14 +1051,10 @@
   padding: var(--space-4) var(--space-5) var(--space-3);
 }
 
-.home-mac-workspace--idle {
-  justify-content: center;
-}
-
 .home-mac-hero {
   flex-shrink: 0;
   width: 100%;
-  max-width: 640px;
+  max-width: 560px;
   padding: 0 0 var(--space-3);
   display: flex;
   align-items: flex-end;
@@ -1084,20 +1063,14 @@
   overflow: visible;
 }
 
-.home-mac-hero .mascot-bubble {
-  max-width: 100%;
-  font-size: var(--text-xs);
-  padding: var(--space-1) var(--space-2);
-  line-height: 1.35;
-}
-
 .home-mac-main {
   flex-shrink: 0;
   width: 100%;
   min-width: 0;
-  max-width: 640px;
+  max-width: 560px;
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: var(--space-3);
 }
 

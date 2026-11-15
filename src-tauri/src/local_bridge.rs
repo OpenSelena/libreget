@@ -716,7 +716,7 @@ async fn enqueue(
                 StatusCode::BAD_REQUEST,
                 "UNSUPPORTED_PROTOCOL",
                 format!(
-                    "Extension protocol v{client_version} is newer than host v{HOST_MAX_PROTOCOL_VERSION}. Please update OmniGet."
+                    "Extension protocol v{client_version} is newer than host v{HOST_MAX_PROTOCOL_VERSION}. Please update LibreGet."
                 ),
             );
         }
@@ -782,7 +782,7 @@ async fn enqueue(
     // the shortcut, never the enqueue.
     if let Some(text) = payload.manifest_text.as_deref() {
         if !text.trim().is_empty() {
-            match omniget_core::core::extension_manifest::store_manifest(&payload.url, text) {
+            match libreget_core::core::extension_manifest::store_manifest(&payload.url, text) {
                 Ok(()) => tracing::info!(
                     "stored extension-captured playlist ({} bytes) for {}",
                     text.len(),
@@ -826,7 +826,7 @@ async fn cookies_export(
                 StatusCode::BAD_REQUEST,
                 "UNSUPPORTED_PROTOCOL",
                 format!(
-                    "Extension protocol v{client_version} is newer than host v{HOST_MAX_PROTOCOL_VERSION}. Please update OmniGet."
+                    "Extension protocol v{client_version} is newer than host v{HOST_MAX_PROTOCOL_VERSION}. Please update LibreGet."
                 ),
             );
         }
@@ -901,7 +901,7 @@ async fn mcp_post(
         return unauthorized();
     }
     if !crate::mcp::enabled() {
-        return (StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": "MCP server is disabled in OmniGet → Tools → MCP server" }))).into_response();
+        return (StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": "MCP server is disabled in LibreGet → Tools → MCP server" }))).into_response();
     }
     let msg: serde_json::Value = match serde_json::from_slice(&body) {
         Ok(v) => v,
@@ -960,7 +960,7 @@ pub fn slides_bridge_status() -> SlidesBridgeStatus {
         port: effective_port,
         slide_count,
         last_output,
-        script: omniget_core::core::tools::gslides::browser_extractor_script(
+        script: libreget_core::core::tools::gslides::browser_extractor_script(
             effective_port,
             &token,
         ),
@@ -1084,13 +1084,13 @@ async fn slides_compile(
         dirs::download_dir().unwrap_or_else(|| PathBuf::from("."))
     };
     let _ = std::fs::create_dir_all(&out_dir);
-    let safe_title = omniget_core::core::tools::sanitize_name(&title);
+    let safe_title = libreget_core::core::tools::sanitize_name(&title);
     let out_file = out_dir.join(format!("{}.pdf", safe_title));
 
     let compile_res = tokio::task::spawn_blocking(move || {
-        omniget_core::core::tools::gslides::compile_svgs_to_pdf(
+        libreget_core::core::tools::gslides::compile_svgs_to_pdf(
             &svgs,
-            &omniget_core::core::tools::noop_progress(),
+            &libreget_core::core::tools::noop_progress(),
             "bridge-compile",
         )
     })

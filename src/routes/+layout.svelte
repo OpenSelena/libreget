@@ -15,6 +15,7 @@
   import AppSidebar from "$components/shell/AppSidebar.svelte";
   import AppToolbar from "$components/shell/AppToolbar.svelte";
   import CommandPalette from "$components/shell/CommandPalette.svelte";
+  import GlobalDownloadBar from "$components/download/GlobalDownloadBar.svelte";
   import { setCommandPaletteItems } from "$lib/stores/command-palette-store.svelte";
   import {
     refreshUpdateInfo,
@@ -332,7 +333,7 @@
 
   let { children }: { children: Snippet } = $props();
 
-  const VACUUM_LAST_RUN_KEY = "omniget.library.auto_vacuum.last_run";
+  const VACUUM_LAST_RUN_KEY = "libreget.library.auto_vacuum.last_run";
 
   async function checkAutoVacuum() {
     try {
@@ -425,6 +426,7 @@
           </div>
         {/if}
       </div>
+      <GlobalDownloadBar />
     </main>
   </div>
 </div>
@@ -510,7 +512,8 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--space-3);
-    margin: 0 var(--pane-inset) var(--space-2) 0;
+    margin-block: 0 var(--space-2);
+    margin-inline: 0 var(--pane-inset);
     padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
     background: var(--accent);
     color: var(--on-accent);
@@ -597,7 +600,8 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--space-3);
-    margin: 0 var(--pane-inset) var(--space-2) 0;
+    margin-block: 0 var(--space-2);
+    margin-inline: 0 var(--pane-inset);
     padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
     background: color-mix(in srgb, var(--warning) 16%, var(--pane-bg));
     color: var(--text);
