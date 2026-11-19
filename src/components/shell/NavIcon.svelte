@@ -1,7 +1,6 @@
 <script lang="ts">
   /**
-   * Sidebar icon tile supporting both custom MosCat character illustrations
-   * and classic macOS System Settings-style gradient tiles for dynamic plugins.
+   * macOS System Settings-style vector gradient tile navigation icon.
    */
   let {
     icon,
@@ -9,19 +8,6 @@
     size = 26,
     active = false,
   }: { icon: string; iconSvg?: string; size?: number; active?: boolean } = $props();
-
-  const MOSCAT_ICONS: Record<string, string> = {
-    home: "/icons/nav/home.svg",
-    downloads: "/icons/nav/downloads.svg",
-    tools: "/icons/nav/tools.svg",
-    nami: "/icons/nav/nami.svg",
-    marketplace: "/icons/nav/marketplace.svg",
-    convert: "/icons/nav/convert.svg",
-    settings: "/icons/nav/settings.svg",
-    about: "/icons/about-64.png",
-    courses: "/icons/nav/courses.svg",
-    telegram: "/icons/telegram-64.png",
-  };
 
   const TILES: Record<string, { glyph: string; from: string; to: string }> = {
     home: { glyph: "house", from: "#5AA9FF", to: "#1E6FE8" },
@@ -39,7 +25,6 @@
     plugin: { glyph: "puzzle-piece", from: "#8E8E93", to: "#5C5C60" },
   };
 
-  let moscatIcon = $derived(MOSCAT_ICONS[icon]);
   let tile = $derived(TILES[icon] ?? TILES.plugin);
   let glyphSize = $derived(Math.round(size * 0.64));
 </script>
@@ -58,22 +43,6 @@
         <path d={pathD} />
       {/each}
     </svg>
-  </span>
-{:else if moscatIcon}
-  <span
-    class="nav-icon nav-moscat"
-    class:nav-icon-active={active}
-    style:--icon-size="{size}px"
-    aria-hidden="true"
-  >
-    <img
-      src={moscatIcon}
-      alt=""
-      width={size}
-      height={size}
-      class="nav-moscat-img"
-      draggable="false"
-    />
   </span>
 {:else}
   <span
@@ -103,6 +72,7 @@
       inset 0 -1px 1px rgba(0, 0, 0, 0.12),
       0 0.5px 1px rgba(0, 0, 0, 0.25);
     color: #fff;
+    transition: transform 0.15s var(--ease-out, ease-out);
   }
 
   .nav-glyph {
@@ -113,38 +83,19 @@
     filter: drop-shadow(0 0.5px 0 rgba(0, 0, 0, 0.18));
   }
 
-  .nav-moscat {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: var(--icon-size);
-    height: var(--icon-size);
-    flex-shrink: 0;
+  .nav-icon-active.nav-tile {
+    transform: scale(1.05);
   }
 
-  .nav-moscat-img {
-    width: var(--icon-size);
-    height: var(--icon-size);
-    object-fit: contain;
-    display: block;
-    border-radius: 4px;
-    filter: drop-shadow(0 0.5px 1px rgba(0, 0, 0, 0.18));
-    transition: transform 0.15s var(--ease-out, ease-out);
-  }
-
-  .nav-icon-active .nav-moscat-img {
-    transform: scale(1.08);
-  }
-
-  :global(.mac-nav-item:hover) .nav-moscat-img:not(.nav-icon-active) {
-    transform: scale(1.08) rotate(-3deg);
+  :global(.mac-nav-item:hover) .nav-tile:not(.nav-icon-active) {
+    transform: scale(1.05);
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .nav-moscat-img {
+    .nav-tile {
       transition: none;
     }
-    :global(.mac-nav-item:hover) .nav-moscat-img:not(.nav-icon-active) {
+    :global(.mac-nav-item:hover) .nav-tile:not(.nav-icon-active) {
       transform: none;
     }
   }

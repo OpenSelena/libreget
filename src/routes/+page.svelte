@@ -1131,12 +1131,7 @@
             />
           {/if}
 
-          {#if libreState.kind === "detecting"}
-            <div class="feedback feedback-enter">
-              <span class="feedback-text">{$t('librebox.detecting')}</span>
-            </div>
-
-          {:else if libreState.kind === "detected"}
+          {#if libreState.kind === "detected"}
             <div class="feedback feedback-enter" data-supported="true">
               <span class="feedback-text">{platformDisplayName(libreState.info.platform)}</span>
             </div>

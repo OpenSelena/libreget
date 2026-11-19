@@ -454,10 +454,6 @@
   .mac-nav-item :global(.nav-tile) {
     --tile-size: 26px;
   }
-
-  .mac-nav-item :global(.nav-moscat) {
-    --icon-size: 26px;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
