@@ -94,7 +94,11 @@
   gap: var(--space-3);
 }
 
-.settings-panel + .settings-panel {
+.settings-panel.is-hidden {
+  display: none !important;
+}
+
+.settings-panel:not(.is-hidden) ~ .settings-panel:not(.is-hidden) {
   margin-top: var(--space-6);
 }
 

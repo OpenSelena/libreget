@@ -185,6 +185,11 @@
   ];
 
   let activeCategory = $state<SettingsCategory>("downloads");
+  let visitedCategories = $state<Partial<Record<SettingsCategory, boolean>>>({ downloads: true });
+
+  $effect(() => {
+    visitedCategories[activeCategory] = true;
+  });
 
   let tabApplied = false;
   $effect(() => {
@@ -311,8 +316,13 @@
     });
   }
 
+  let lastAppliedQuery = "";
   $effect(() => {
     const q = normalizedQuery;
+    if (q === lastAppliedQuery) return;
+    const hadSearch = lastAppliedQuery.length > 0;
+    lastAppliedQuery = q;
+
     if (typeof document === "undefined") return;
     let cancelled = false;
 
@@ -323,7 +333,9 @@
       if (!content) return;
 
       if (!q) {
-        resetSettingsSearchDisplay(content);
+        if (hadSearch) {
+          resetSettingsSearchDisplay(content);
+        }
         return;
       }
 
@@ -626,26 +638,26 @@
           </header>
         {/if}
 
-    {#if isSearching || activeCategory === "appearance"}
-      <div class="settings-panel" data-settings-cat="appearance">
+    {#if isSearching || visitedCategories.appearance}
+      <div class="settings-panel" class:is-hidden={!isSearching && activeCategory !== "appearance"} data-settings-cat="appearance">
         <SettingsAppearance searchActive={isSearching} />
       </div>
     {/if}
 
-    {#if isSearching || activeCategory === "typography"}
-      <div class="settings-panel" data-settings-cat="typography">
+    {#if isSearching || visitedCategories.typography}
+      <div class="settings-panel" class:is-hidden={!isSearching && activeCategory !== "typography"} data-settings-cat="typography">
         <SettingsTypography />
       </div>
     {/if}
 
-    {#if isSearching || activeCategory === "downloads"}
-      <div class="settings-panel" data-settings-cat="downloads">
+    {#if isSearching || visitedCategories.downloads}
+      <div class="settings-panel" class:is-hidden={!isSearching && activeCategory !== "downloads"} data-settings-cat="downloads">
         <SettingsDownloads searchActive={isSearching} />
       </div>
     {/if}
 
-    {#if isSearching || activeCategory === "plugins"}
-      <div class="settings-panel" data-settings-cat="plugins">
+    {#if isSearching || visitedCategories.plugins}
+      <div class="settings-panel" class:is-hidden={!isSearching && activeCategory !== "plugins"} data-settings-cat="plugins">
         <SettingsPlugins
           {deps}
           {installingDep}
@@ -655,33 +667,33 @@
       </div>
     {/if}
 
-    {#if isSearching || activeCategory === "network"}
-      <div class="settings-panel" data-settings-cat="network">
+    {#if isSearching || visitedCategories.network}
+      <div class="settings-panel" class:is-hidden={!isSearching && activeCategory !== "network"} data-settings-cat="network">
         <SettingsBrowserExtension />
         <SettingsNetwork />
       </div>
     {/if}
 
-    {#if isSearching || activeCategory === "cookies"}
-      <div class="settings-panel" data-settings-cat="cookies">
+    {#if isSearching || visitedCategories.cookies}
+      <div class="settings-panel" class:is-hidden={!isSearching && activeCategory !== "cookies"} data-settings-cat="cookies">
         <SettingsCookies />
       </div>
     {/if}
 
-    {#if isSearching || activeCategory === "channels"}
-      <div class="settings-panel" data-settings-cat="channels">
+    {#if isSearching || visitedCategories.channels}
+      <div class="settings-panel" class:is-hidden={!isSearching && activeCategory !== "channels"} data-settings-cat="channels">
         <SettingsChannels />
       </div>
     {/if}
 
-    {#if isSearching || activeCategory === "ai"}
-      <div class="settings-panel" data-settings-cat="ai">
+    {#if isSearching || visitedCategories.ai}
+      <div class="settings-panel" class:is-hidden={!isSearching && activeCategory !== "ai"} data-settings-cat="ai">
         <SettingsAI />
       </div>
     {/if}
 
-    {#if isSearching || activeCategory === "advanced"}
-      <div class="settings-panel" data-settings-cat="advanced">
+    {#if isSearching || visitedCategories.advanced}
+      <div class="settings-panel" class:is-hidden={!isSearching && activeCategory !== "advanced"} data-settings-cat="advanced">
         <SettingsRules />
         <SettingsStorage />
         <SettingsAdvanced {resetting} onReset={handleReset} searchActive={isSearching} />

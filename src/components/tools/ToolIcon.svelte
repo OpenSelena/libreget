@@ -48,11 +48,8 @@
     flex-shrink: 0;
     color: #fff;
     box-shadow:
-      inset 0 0 0 0.5px rgba(255, 255, 255, 0.28),
-      inset 0 1px 0 rgba(255, 255, 255, 0.22),
-      inset 0 -2px 3px rgba(0, 0, 0, 0.14),
-      0 1px 2px rgba(0, 0, 0, 0.18),
-      0 6px 14px -6px rgba(0, 0, 0, 0.35);
+      inset 0 1px 0 rgba(255, 255, 255, 0.25),
+      0 2px 8px -2px rgba(0, 0, 0, 0.25);
     transition: transform var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out);
   }
 
@@ -89,6 +86,5 @@
     background: #fff;
     -webkit-mask: var(--glyph) center / contain no-repeat;
     mask: var(--glyph) center / contain no-repeat;
-    filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.2));
   }
 </style>

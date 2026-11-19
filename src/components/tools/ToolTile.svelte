@@ -88,6 +88,9 @@
     text-align: center;
     -webkit-user-drag: none;
     transition: background var(--duration-fast) var(--ease-out);
+    content-visibility: auto;
+    contain-intrinsic-size: 148px 160px;
+    contain: layout paint style;
   }
 
   .tool-tile-art {

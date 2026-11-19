@@ -122,6 +122,11 @@
     flex-shrink: 0;
   }
 
+  .tools-filter .segmented-btn {
+    height: 28px;
+    min-width: 28px;
+  }
+
   .sr-only {
     position: absolute;
     width: 1px;

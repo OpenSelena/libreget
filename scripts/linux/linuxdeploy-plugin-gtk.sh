@@ -231,9 +231,6 @@ export XDG_DATA_DIRS="$APPDIR/usr/share:/usr/share:$XDG_DATA_DIRS" # g_get_syste
 if [ -z "${WEBKIT_DISABLE_DMABUF_RENDERER:-}" ]; then
     export WEBKIT_DISABLE_DMABUF_RENDERER=1
 fi
-if [ -z "${WEBKIT_DISABLE_COMPOSITING_MODE:-}" ]; then
-    export WEBKIT_DISABLE_COMPOSITING_MODE=1
-fi
 
 # WebKitGTK plays media through GStreamer, and the bundled core libraries come
 # without plugins or the plugin-scanner helper — so the default scan finds no

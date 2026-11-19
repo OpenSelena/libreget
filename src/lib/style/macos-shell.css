@@ -448,7 +448,7 @@
   .mac-nav-item {
     justify-content: center;
     padding: 0;
-    height: 44px;
+    height: 36px;
   }
 
   .mac-nav-item :global(.nav-tile) {
@@ -480,6 +480,7 @@
   margin-inline: 0 var(--pane-inset);
   overflow: hidden;
   position: relative;
+  isolation: isolate;
 }
 
 /* Plugin surfaces expect to be flex children of a column that fills the pane
@@ -491,6 +492,8 @@
   flex-direction: column;
   overflow-y: auto;
   overscroll-behavior: contain;
+  transform: translateZ(0);
+  will-change: scroll-position;
 }
 
 .mac-content {

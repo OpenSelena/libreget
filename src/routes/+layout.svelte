@@ -536,6 +536,9 @@
     width: 100%;
     margin: 0;
     overflow-y: auto;
+    overscroll-behavior-y: contain;
+    transform: translateZ(0);
+    will-change: scroll-position;
   }
 
   .core-shell--flush {
