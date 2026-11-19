@@ -35,7 +35,16 @@
     style:background={gradient}
     aria-hidden="true"
   >
-    <span class="tool-glyph" style:--glyph="url({url})" style:width="{glyphSize}px" style:height="{glyphSize}px"></span>
+    <img
+      class="tool-glyph-img"
+      src={url}
+      alt=""
+      width={glyphSize}
+      height={glyphSize}
+      draggable="false"
+      loading="lazy"
+      decoding="async"
+    />
   </span>
 {/if}
 
@@ -81,10 +90,11 @@
     opacity: 0.72;
   }
 
-  .tool-glyph {
+  .tool-glyph-img {
     display: block;
-    background: #fff;
-    -webkit-mask: var(--glyph) center / contain no-repeat;
-    mask: var(--glyph) center / contain no-repeat;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
+    pointer-events: none;
+    -webkit-user-drag: none;
   }
 </style>

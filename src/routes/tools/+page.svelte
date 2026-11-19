@@ -23,6 +23,31 @@
   let ready = $derived(index.filter((e) => e.tool.status !== "soon"));
   let categories = $derived([...CATEGORIES].sort((a, b) => a.order - b.order));
 
+  const BATCH_SIZE = 24;
+  let visibleReadyCount = $state(BATCH_SIZE);
+  let visibleReady = $derived(ready.slice(0, visibleReadyCount));
+  let sentinelEl = $state<HTMLElement | null>(null);
+
+  $effect(() => {
+    if (!browsing) {
+      visibleReadyCount = BATCH_SIZE;
+      return;
+    }
+    if (!sentinelEl || visibleReadyCount >= ready.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          visibleReadyCount = Math.min(ready.length, visibleReadyCount + BATCH_SIZE);
+        }
+      },
+      { rootMargin: "400px" },
+    );
+
+    observer.observe(sentinelEl);
+    return () => observer.disconnect();
+  });
+
   function countLabel(n: number): string {
     return n === 1 ? ($t("tools.hub.tool_count_one") as string) : ($t("tools.hub.tool_count", { count: n }) as string);
   }
@@ -64,7 +89,7 @@
         <span class="section-header-title">{$t("tools.hub.ready_now")}</span>
       </div>
       <div class="tools-grid">
-        {#each ready as entry (entry.tool.id)}
+        {#each visibleReady as entry (entry.tool.id)}
           <ToolTile
             href={toolHref(entry.tool)}
             label={entry.name}
@@ -77,6 +102,9 @@
           />
         {/each}
       </div>
+      {#if visibleReadyCount < ready.length}
+        <div bind:this={sentinelEl} class="tools-sentinel" aria-hidden="true"></div>
+      {/if}
     </div>
   {:else if groups.length === 0}
     <div class="tools-empty">
@@ -188,5 +216,11 @@
     margin: 0;
     font-size: var(--text-base);
     color: var(--text-muted);
+  }
+
+  .tools-sentinel {
+    height: 1px;
+    width: 100%;
+    pointer-events: none;
   }
 </style>

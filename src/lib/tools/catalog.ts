@@ -346,8 +346,16 @@ export type IndexedTool = {
  * texto de cada ferramenta, então "instagram" acha tudo de Instagram mesmo
  * que a ferramenta não repita a palavra.
  */
+let cachedIndex: IndexedTool[] | null = null;
+let cachedSampleName: string | null = null;
+
 export function buildIndex(t: Translate): IndexedTool[] {
-  return TOOLS.map((tool) => {
+  const sample = t("tools.catalog.yt-download.name");
+  if (cachedIndex && cachedSampleName === sample) {
+    return cachedIndex;
+  }
+  cachedSampleName = sample;
+  cachedIndex = TOOLS.map((tool) => {
     const cat = categoryById(tool.category);
     const name = t(`tools.catalog.${tool.id}.name`);
     const desc = t(`tools.catalog.${tool.id}.desc`);
@@ -355,6 +363,7 @@ export function buildIndex(t: Translate): IndexedTool[] {
     const parts = [name, desc, catName, ...tool.keywords, ...(cat?.keywords ?? []), ...tool.platforms];
     return { tool, name, desc, hay: normalize(parts.join(" ")) };
   });
+  return cachedIndex;
 }
 
 /** Todas as palavras da busca precisam aparecer, em qualquer ordem. */

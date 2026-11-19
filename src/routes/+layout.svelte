@@ -61,15 +61,6 @@
   let badgeLabel = $derived(counts.badge > 99 ? "99+" : String(counts.badge));
   let settings = $derived(getSettings());
 
-  let isCoreRoute = $derived(
-    page.url.pathname === "/" ||
-    page.url.pathname.startsWith("/downloads") ||
-    page.url.pathname.startsWith("/settings") ||
-    page.url.pathname.startsWith("/marketplace") ||
-    page.url.pathname.startsWith("/about") ||
-    page.url.pathname.startsWith("/nami"),
-  );
-
   let isFlushRoute = $derived(
     page.url.pathname === "/" ||
     page.url.pathname.startsWith("/downloads") ||
@@ -452,15 +443,9 @@
 
     <main id="main-content" class="content">
       <div class="mac-pane" class:mac-pane--flush={isFlushRoute}>
-        {#if isCoreRoute}
-          <div class="core-shell" class:core-shell--flush={isFlushRoute}>
-            {@render children()}
-          </div>
-        {:else}
-          <div class="mac-pane-scroll">
-            {@render children()}
-          </div>
-        {/if}
+        <div class="mac-pane-scroll core-shell" class:core-shell--flush={isFlushRoute}>
+          {@render children()}
+        </div>
       </div>
       <GlobalDownloadBar />
     </main>
