@@ -17,6 +17,7 @@ pub mod http_client;
 pub mod http_fetcher;
 pub mod hwaccel;
 pub mod impersonation;
+pub mod leftovers;
 pub mod livechat;
 pub mod log_hook;
 pub mod media_processor;

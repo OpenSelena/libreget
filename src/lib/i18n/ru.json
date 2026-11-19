@@ -65,7 +65,9 @@
     "section_plugins": "Плагины",
     "expand_plugins": "Развернуть плагины",
     "collapse_plugins": "Свернуть плагины",
-    "tools": "Инструменты"
+    "tools": "Инструменты",
+    "collapse_sidebar": "Свернуть боковую панель",
+    "expand_sidebar": "Развернуть боковую панель"
   },
   "command_palette": {
     "open": "Поиск",
@@ -87,7 +89,14 @@
     "action_advanced": "Расширенные параметры",
     "action_simple": "Вернуться к простому виду",
     "value_line": "{{count}} файлов · {{size}} сохранено с LibreGet",
-    "value_first": "Первая загрузка займёт около минуты. Для приватного контента нужны только cookies вашего браузера."
+    "value_first": "Первая загрузка займёт около минуты. Для приватного контента нужны только cookies вашего браузера.",
+    "more": "Другие способы скачать",
+    "paste": "Вставить",
+    "paste_empty": "В буфере обмена нет ссылки.",
+    "submit": "Скачать по ссылке",
+    "saved_count_one": "{{count}} файл",
+    "saved_count_other": "{{count}} файлов",
+    "saved_line": "{{files}} · {{size}} сохранено"
   },
   "tools": {
     "tab": "Инструменты",
@@ -3248,7 +3257,11 @@
     "view_downloads": "View downloads",
     "eta_left": "About {{eta}} left",
     "view_history": "История",
-    "view_tools": "Инструменты"
+    "view_tools": "Инструменты",
+    "leftovers_title": "Удалить то, что осталось от этой загрузки?",
+    "leftovers_body": "Эта загрузка оставила незавершённые файлы ({{count}}), всего {{size}}. Готовые файлы не затрагиваются.",
+    "leftovers_keep": "Убрать, но оставить файлы",
+    "leftovers_delete": "Убрать и удалить файлы"
   },
   "toast": {
     "download_preparing": "Подготовка к скачиванию…",
@@ -3810,7 +3823,8 @@
       "copy_to_clipboard_on_hotkey_desc": "Автоматически копировать скачанный файл в буфер обмена для удобной вставки",
       "filename_template": "Шаблон имени файла",
       "filename_template_desc": "Шаблон вывода yt-dlp для скачиваемых файлов",
-      "filename_template_preview": "Предпросмотр: {{preview}}"
+      "filename_template_preview": "Предпросмотр: {{preview}}",
+      "remove_saved_dir": "Убрать из списка"
     },
     "update_available": "Доступен LibreGet {{version}}",
     "update_button": "обновить сейчас",
@@ -4375,7 +4389,12 @@
     },
     "courses_plugin_needed": "Это страница курса. Бесплатный плагин «Курсы» войдёт в ваш аккаунт и скачает все уроки.",
     "courses_plugin_ready": "Страницы курсов скачиваются со вкладки «Курсы», когда вы вошли в аккаунт.",
-    "install_courses_plugin": "Установить плагин «Курсы»"
+    "install_courses_plugin": "Установить плагин «Курсы»",
+    "video_or_list": "Это видео входит в список. Что скачать?",
+    "video_or_list_mix": "Это видео входит в автоматический микс. Что скачать?",
+    "video_or_list_video": "Только это видео",
+    "video_or_list_list": "Весь список",
+    "video_or_list_mix_list": "Микс"
   },
   "about": {
     "tab": {

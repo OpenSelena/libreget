@@ -28,6 +28,7 @@
   import DownloadPoster from "$components/download/DownloadPoster.svelte";
   import DownloadPhases from "$components/download/DownloadPhases.svelte";
   import DownloadCommand from "$components/download/DownloadCommand.svelte";
+  import FailedLeftoversDialog, { type LeftoverFile } from "$components/downloads/FailedLeftoversDialog.svelte";
   import ReencodeDialog from "$components/dialog/ReencodeDialog.svelte";
   import ToolsPanel from "$components/downloads/ToolsPanel.svelte";
   import VideoOpsOverlay from "$components/downloads/VideoOpsOverlay.svelte";
@@ -260,16 +261,41 @@
 
   let pendingRemove = $state<number | null>(null);
   let pendingRemoveTimer = $state<ReturnType<typeof setTimeout> | null>(null);
+  let leftoversOpen = $state(false);
+  let leftoverFiles = $state<LeftoverFile[]>([]);
+  let leftoversId = $state<number | null>(null);
+
+  async function removeOfferingLeftovers(id: number) {
+    let files: LeftoverFile[] = [];
+    try {
+      files = await invoke<LeftoverFile[]>("failed_download_leftovers", { downloadId: id });
+    } catch {
+      files = [];
+    }
+    if (files.length > 0) {
+      leftoverFiles = files;
+      leftoversId = id;
+      leftoversOpen = true;
+      return;
+    }
+    await finishRemove(id, false);
+  }
+
+  async function finishRemove(id: number, deletePartials: boolean) {
+    try {
+      await invoke("remove_download", { downloadId: id, deletePartials });
+    } catch (e: any) {
+      const msg = typeof e === "string" ? e : e.message ?? $t("common.error");
+      showToast("error", msg);
+    }
+  }
 
   function removeItem(id: number) {
     if (pendingRemove === id) {
       if (pendingRemoveTimer) clearTimeout(pendingRemoveTimer);
       pendingRemove = null;
       pendingRemoveTimer = null;
-      invoke("remove_download", { downloadId: id }).catch((e: any) => {
-        const msg = typeof e === "string" ? e : e.message ?? $t("common.error");
-        showToast("error", msg);
-      });
+      void removeOfferingLeftovers(id);
     } else {
       if (pendingRemoveTimer) clearTimeout(pendingRemoveTimer);
       pendingRemove = id;
@@ -781,6 +807,14 @@
 {/if}
 
 <ReencodeDialog bind:inputPath={reencodePath} />
+
+<FailedLeftoversDialog
+  bind:open={leftoversOpen}
+  files={leftoverFiles}
+  onRemove={(deletePartials) => {
+    if (leftoversId !== null) void finishRemove(leftoversId, deletePartials);
+  }}
+/>
 
 {#if vopPath}
   <VideoOpsOverlay filePath={vopPath} onClose={() => (vopPath = null)} />

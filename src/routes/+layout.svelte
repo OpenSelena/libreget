@@ -348,13 +348,49 @@
     } catch {}
   }
 
+  const SIDEBAR_KEY = "libreget.sidebar.collapsed";
+  let sidebarCollapsed = $state(
+    typeof localStorage === "undefined"
+      ? false
+      : localStorage.getItem(SIDEBAR_KEY) === "1",
+  );
+
+  $effect(() => {
+    document.documentElement.setAttribute("data-sidebar", sidebarCollapsed ? "collapsed" : "expanded");
+  });
+
+  function toggleSidebar() {
+    sidebarCollapsed = !sidebarCollapsed;
+    try {
+      localStorage.setItem(SIDEBAR_KEY, sidebarCollapsed ? "1" : "0");
+    } catch {}
+  }
+
+  function onSidebarShortcut(e: KeyboardEvent) {
+    if (e.key.toLowerCase() !== "s" || e.altKey) return;
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey) {
+      e.preventDefault();
+      toggleSidebar();
+    }
+  }
+
   onMount(() => {
     void checkAutoVacuum();
   });
 </script>
 
+<svelte:window onkeydown={onSidebarShortcut} />
+
 <div class="shell" data-reduce-motion={settings?.accessibility?.reduce_motion} data-reduce-transparency={settings?.accessibility?.reduce_transparency}>
-  <AppSidebar {primaryNav} {appNav} {pluginNav} {badgeLabel} />
+  <AppSidebar
+    {primaryNav}
+    {appNav}
+    {pluginNav}
+    {badgeLabel}
+    badgeCount={counts.badge}
+    collapsed={sidebarCollapsed}
+    onToggleCollapsed={toggleSidebar}
+  />
 
   <div class="shell-body">
     <AppToolbar />

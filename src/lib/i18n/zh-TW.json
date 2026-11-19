@@ -65,7 +65,9 @@
     "section_plugins": "Plugins",
     "expand_plugins": "Expand plugins",
     "collapse_plugins": "Collapse plugins",
-    "tools": "Tools"
+    "tools": "Tools",
+    "collapse_sidebar": "收合側邊欄",
+    "expand_sidebar": "展開側邊欄"
   },
   "command_palette": {
     "open": "Search",
@@ -87,7 +89,14 @@
     "action_advanced": "Advanced options",
     "action_simple": "Back to the simple view",
     "value_line": "{{count}} files · {{size}} saved with LibreGet",
-    "value_first": "Your first download takes about a minute. Private content only needs your browser cookies."
+    "value_first": "Your first download takes about a minute. Private content only needs your browser cookies.",
+    "more": "更多下載方式",
+    "paste": "貼上",
+    "paste_empty": "剪貼簿裡沒有連結。",
+    "submit": "下載此連結",
+    "saved_count_one": "{{count}} 個檔案",
+    "saved_count_other": "{{count}} 個檔案",
+    "saved_line": "已儲存 {{files}} · {{size}}"
   },
   "tools": {
     "tab": "工具",
@@ -3248,7 +3257,11 @@
     "view_downloads": "View downloads",
     "eta_left": "About {{eta}} left",
     "view_history": "History",
-    "view_tools": "Tools"
+    "view_tools": "Tools",
+    "leftovers_title": "要刪除這次下載留下的檔案嗎？",
+    "leftovers_body": "這次下載留下了 {{count}} 個不完整的檔案，共 {{size}}。已完成的檔案不會受影響。",
+    "leftovers_keep": "移除但保留檔案",
+    "leftovers_delete": "移除並刪除檔案"
   },
   "toast": {
     "download_preparing": "正在準備下載...",
@@ -3810,7 +3823,8 @@
       "copy_to_clipboard_on_hotkey_desc": "下載完成後自動將檔案複製到剪貼簿，方便貼上",
       "filename_template": "檔名範本",
       "filename_template_desc": "下載檔案使用的 yt-dlp 輸出範本",
-      "filename_template_preview": "預覽: {{preview}}"
+      "filename_template_preview": "預覽: {{preview}}",
+      "remove_saved_dir": "Remove"
     },
     "update_available": "LibreGet {{version}} 可供更新",
     "update_button": "立即更新",
@@ -4375,7 +4389,12 @@
     },
     "courses_plugin_needed": "This is a course page. The free Courses plugin signs in with your account and downloads every lesson.",
     "courses_plugin_ready": "Course pages are downloaded from the Courses tab with your account signed in.",
-    "install_courses_plugin": "Get the Courses plugin"
+    "install_courses_plugin": "Get the Courses plugin",
+    "video_or_list": "這部影片屬於某個清單。你要下載什麼？",
+    "video_or_list_mix": "這部影片屬於自動合輯。你要下載什麼？",
+    "video_or_list_video": "只要這部影片",
+    "video_or_list_list": "整個清單",
+    "video_or_list_mix_list": "整個合輯"
   },
   "about": {
     "tab": {

@@ -65,7 +65,9 @@
     "section_plugins": "Plugins",
     "expand_plugins": "Expand plugins",
     "collapse_plugins": "Collapse plugins",
-    "tools": "Ferramentas"
+    "tools": "Ferramentas",
+    "collapse_sidebar": "Recolher barra lateral",
+    "expand_sidebar": "Expandir barra lateral"
   },
   "command_palette": {
     "open": "Search",
@@ -87,7 +89,14 @@
     "action_advanced": "Advanced options",
     "action_simple": "Back to the simple view",
     "value_line": "{{count}} files · {{size}} saved with LibreGet",
-    "value_first": "Your first download takes about a minute. Private content only needs your browser cookies."
+    "value_first": "Your first download takes about a minute. Private content only needs your browser cookies.",
+    "more": "Mais formas de baixar",
+    "paste": "Colar",
+    "paste_empty": "Sua área de transferência não tem nenhum link.",
+    "submit": "Baixar este link",
+    "saved_count_one": "{{count}} arquivo",
+    "saved_count_other": "{{count}} arquivos",
+    "saved_line": "{{files}} · {{size}} salvos"
   },
   "tools": {
     "tab": "Ferramentas",
@@ -3248,7 +3257,11 @@
     "view_downloads": "View downloads",
     "eta_left": "About {{eta}} left",
     "view_history": "Histórico",
-    "view_tools": "Ferramentas"
+    "view_tools": "Ferramentas",
+    "leftovers_title": "Apagar o que este download deixou para trás?",
+    "leftovers_body": "Este download deixou {{count}} arquivo(s) parcial(is), {{size}} no total. Arquivos prontos não são tocados.",
+    "leftovers_keep": "Remover e manter os arquivos",
+    "leftovers_delete": "Remover e apagar os arquivos"
   },
   "toast": {
     "download_preparing": "Preparando download...",
@@ -3810,7 +3823,8 @@
       "copy_to_clipboard_on_hotkey_desc": "Copiar automaticamente o arquivo baixado para o clipboard para fácil colagem",
       "filename_template": "Template de nome",
       "filename_template_desc": "Template yt-dlp para nome dos arquivos baixados",
-      "filename_template_preview": "Preview: {{preview}}"
+      "filename_template_preview": "Preview: {{preview}}",
+      "remove_saved_dir": "Remove"
     },
     "update_available": "LibreGet {{version}} está disponível",
     "update_button": "atualizar agora",
@@ -4375,7 +4389,12 @@
     },
     "courses_plugin_needed": "This is a course page. The free Courses plugin signs in with your account and downloads every lesson.",
     "courses_plugin_ready": "Course pages are downloaded from the Courses tab with your account signed in.",
-    "install_courses_plugin": "Get the Courses plugin"
+    "install_courses_plugin": "Get the Courses plugin",
+    "video_or_list": "Este vídeo faz parte de uma lista. O que você quer baixar?",
+    "video_or_list_mix": "Este vídeo faz parte de um mix automático. O que você quer baixar?",
+    "video_or_list_video": "Só este vídeo",
+    "video_or_list_list": "A lista inteira",
+    "video_or_list_mix_list": "O mix"
   },
   "about": {
     "tab": {

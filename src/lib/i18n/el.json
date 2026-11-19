@@ -65,7 +65,9 @@
     "section_plugins": "Plugins",
     "expand_plugins": "Expand plugins",
     "collapse_plugins": "Collapse plugins",
-    "tools": "Tools"
+    "tools": "Tools",
+    "collapse_sidebar": "Σύμπτυξη πλαϊνής στήλης",
+    "expand_sidebar": "Ανάπτυξη πλαϊνής στήλης"
   },
   "command_palette": {
     "open": "Search",
@@ -87,7 +89,14 @@
     "action_advanced": "Advanced options",
     "action_simple": "Back to the simple view",
     "value_line": "{{count}} files · {{size}} saved with LibreGet",
-    "value_first": "Your first download takes about a minute. Private content only needs your browser cookies."
+    "value_first": "Your first download takes about a minute. Private content only needs your browser cookies.",
+    "more": "Περισσότεροι τρόποι λήψης",
+    "paste": "Επικόλληση",
+    "paste_empty": "Το πρόχειρο δεν έχει σύνδεσμο.",
+    "submit": "Λήψη αυτού του συνδέσμου",
+    "saved_count_one": "{{count}} αρχείο",
+    "saved_count_other": "{{count}} αρχεία",
+    "saved_line": "{{files}} · {{size}} αποθηκεύτηκαν"
   },
   "tools": {
     "tab": "Εργαλεία",
@@ -3248,7 +3257,11 @@
     "view_downloads": "View downloads",
     "eta_left": "About {{eta}} left",
     "view_history": "History",
-    "view_tools": "Tools"
+    "view_tools": "Tools",
+    "leftovers_title": "Διαγραφή όσων άφησε πίσω αυτή η λήψη;",
+    "leftovers_body": "Αυτή η λήψη άφησε {{count}} μερικό(ά) αρχείο(α), {{size}} συνολικά. Τα ολοκληρωμένα αρχεία δεν αγγίζονται.",
+    "leftovers_keep": "Αφαίρεση και διατήρηση των αρχείων",
+    "leftovers_delete": "Αφαίρεση και διαγραφή των αρχείων"
   },
   "toast": {
     "download_preparing": "Προετοιμασία λήψης...",
@@ -3810,7 +3823,8 @@
       "copy_to_clipboard_on_hotkey_desc": "Αντιγράψτε αυτόματα το ληφθέν αρχείο στο πρόχειρο για εύκολη επικόλληση",
       "filename_template": "Πρότυπο ονόματος αρχείου",
       "filename_template_desc": "Πρότυπο εξόδου του yt-dlp για τα ληφθέντα αρχεία",
-      "filename_template_preview": "Προεπισκόπηση: {{preview}}"
+      "filename_template_preview": "Προεπισκόπηση: {{preview}}",
+      "remove_saved_dir": "Remove"
     },
     "update_available": "Η έκδοση {{version}} του LibreGet είναι διαθέσιμη",
     "update_button": "ενημέρωση τώρα",
@@ -4375,7 +4389,12 @@
     },
     "courses_plugin_needed": "This is a course page. The free Courses plugin signs in with your account and downloads every lesson.",
     "courses_plugin_ready": "Course pages are downloaded from the Courses tab with your account signed in.",
-    "install_courses_plugin": "Get the Courses plugin"
+    "install_courses_plugin": "Get the Courses plugin",
+    "video_or_list": "Αυτό το βίντεο ανήκει σε λίστα. Τι θέλετε να κατεβάσετε;",
+    "video_or_list_mix": "Αυτό το βίντεο ανήκει σε αυτόματο μείγμα. Τι θέλετε να κατεβάσετε;",
+    "video_or_list_video": "Μόνο αυτό το βίντεο",
+    "video_or_list_list": "Ολόκληρη τη λίστα",
+    "video_or_list_mix_list": "Το μείγμα"
   },
   "about": {
     "tab": {

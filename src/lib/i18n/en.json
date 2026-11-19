@@ -65,6 +65,8 @@
     "section_plugins": "Plugins",
     "expand_plugins": "Expand plugins",
     "collapse_plugins": "Collapse plugins",
+    "collapse_sidebar": "Collapse sidebar",
+    "expand_sidebar": "Expand sidebar",
     "tools": "Tools"
   },
   "command_palette": {
@@ -79,8 +81,15 @@
     "action_paste": "Paste URL from clipboard"
   },
   "home": {
+    "more": "More download actions",
     "inspector_title": "Download options",
     "hero_title": "Grab a link, get the file.",
+    "paste": "Paste",
+    "paste_empty": "Your clipboard has no link.",
+    "submit": "Download this link",
+    "saved_count_one": "{{count}} file",
+    "saved_count_other": "{{count}} files",
+    "saved_line": "{{files}} · {{size}} saved",
     "action_batch": "Many links at once",
     "action_torrent": "Open a .torrent file",
     "action_p2p": "Send a file to someone",
@@ -3248,7 +3257,11 @@
     "view_downloads": "View downloads",
     "eta_left": "About {{eta}} left",
     "view_history": "History",
-    "view_tools": "Tools"
+    "view_tools": "Tools",
+    "leftovers_title": "Delete what this download left behind?",
+    "leftovers_body": "This download left {{count}} partial file(s), {{size}} in total. Finished files are not touched.",
+    "leftovers_keep": "Remove and keep the files",
+    "leftovers_delete": "Remove and delete the files"
   },
   "toast": {
     "download_preparing": "Preparing download...",
@@ -3810,7 +3823,8 @@
       "copy_to_clipboard_on_hotkey_desc": "Automatically copy the downloaded file to clipboard for easy pasting",
       "filename_template": "Filename template",
       "filename_template_desc": "yt-dlp output template for downloaded files",
-      "filename_template_preview": "Preview: {{preview}}"
+      "filename_template_preview": "Preview: {{preview}}",
+      "remove_saved_dir": "Remove"
     },
     "update_available": "LibreGet {{version}} is available",
     "update_button": "update now",
@@ -4375,7 +4389,12 @@
     },
     "courses_plugin_needed": "This is a course page. The free Courses plugin signs in with your account and downloads every lesson.",
     "courses_plugin_ready": "Course pages are downloaded from the Courses tab with your account signed in.",
-    "install_courses_plugin": "Get the Courses plugin"
+    "install_courses_plugin": "Get the Courses plugin",
+    "video_or_list": "This video is part of a list. What do you want to download?",
+    "video_or_list_mix": "This video is part of an automatic mix. What do you want to download?",
+    "video_or_list_video": "Only this video",
+    "video_or_list_list": "The whole list",
+    "video_or_list_mix_list": "The mix"
   },
   "about": {
     "tab": {

@@ -6,7 +6,7 @@
   let {
     icon,
     iconSvg,
-    size = 22,
+    size = 26,
     active = false,
   }: { icon: string; iconSvg?: string; size?: number; active?: boolean } = $props();
 
@@ -129,10 +129,23 @@
     display: block;
     border-radius: 4px;
     filter: drop-shadow(0 0.5px 1px rgba(0, 0, 0, 0.18));
-    transition: transform 0.15s ease-out;
+    transition: transform 0.15s var(--ease-out, ease-out);
   }
 
   .nav-icon-active .nav-moscat-img {
     transform: scale(1.08);
+  }
+
+  :global(.mac-nav-item:hover) .nav-moscat-img:not(.nav-icon-active) {
+    transform: scale(1.08) rotate(-3deg);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .nav-moscat-img {
+      transition: none;
+    }
+    :global(.mac-nav-item:hover) .nav-moscat-img:not(.nav-icon-active) {
+      transform: none;
+    }
   }
 </style>

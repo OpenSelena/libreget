@@ -92,6 +92,8 @@ pub struct AppearanceSettings {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DownloadSettings {
     pub default_output_dir: PathBuf,
+    #[serde(default)]
+    pub saved_output_dirs: Vec<String>,
     pub always_ask_path: bool,
     pub video_quality: String,
     pub skip_existing: bool,
@@ -479,6 +481,7 @@ impl Default for AppSettings {
             },
             download: DownloadSettings {
                 default_output_dir: dirs::download_dir().unwrap_or_else(|| PathBuf::from(".")),
+                saved_output_dirs: Vec::new(),
                 always_ask_path: false,
                 video_quality: "720p".into(),
                 skip_existing: true,

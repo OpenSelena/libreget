@@ -65,7 +65,9 @@
     "section_plugins": "Plugins",
     "expand_plugins": "Expand plugins",
     "collapse_plugins": "Collapse plugins",
-    "tools": "Tools"
+    "tools": "Tools",
+    "collapse_sidebar": "サイドバーを折りたたむ",
+    "expand_sidebar": "サイドバーを展開"
   },
   "command_palette": {
     "open": "Search",
@@ -87,7 +89,14 @@
     "action_advanced": "Advanced options",
     "action_simple": "Back to the simple view",
     "value_line": "{{count}} files · {{size}} saved with LibreGet",
-    "value_first": "Your first download takes about a minute. Private content only needs your browser cookies."
+    "value_first": "Your first download takes about a minute. Private content only needs your browser cookies.",
+    "more": "その他のダウンロード方法",
+    "paste": "貼り付け",
+    "paste_empty": "クリップボードにリンクがありません。",
+    "submit": "このリンクをダウンロード",
+    "saved_count_one": "{{count}} 件のファイル",
+    "saved_count_other": "{{count}} 件のファイル",
+    "saved_line": "{{files}} · {{size}} 保存済み"
   },
   "tools": {
     "tab": "ツール",
@@ -3248,7 +3257,11 @@
     "view_downloads": "View downloads",
     "eta_left": "About {{eta}} left",
     "view_history": "History",
-    "view_tools": "Tools"
+    "view_tools": "Tools",
+    "leftovers_title": "このダウンロードが残したものを削除しますか？",
+    "leftovers_body": "このダウンロードは不完全なファイルを {{count}} 個（合計 {{size}}）残しました。完了したファイルには手を付けません。",
+    "leftovers_keep": "削除してファイルは残す",
+    "leftovers_delete": "削除してファイルも消す"
   },
   "toast": {
     "download_preparing": "ダウンロードを準備中...",
@@ -3810,7 +3823,8 @@
       "copy_to_clipboard_on_hotkey_desc": "ダウンロードしたファイルを自動的にクリップボードにコピーして貼り付けやすくします",
       "filename_template": "ファイル名テンプレート",
       "filename_template_desc": "ダウンロードファイルのyt-dlp出力テンプレート",
-      "filename_template_preview": "プレビュー: {{preview}}"
+      "filename_template_preview": "プレビュー: {{preview}}",
+      "remove_saved_dir": "Remove"
     },
     "update_available": "LibreGet {{version}} が利用可能です",
     "update_button": "今すぐ更新",
@@ -4375,7 +4389,12 @@
     },
     "courses_plugin_needed": "This is a course page. The free Courses plugin signs in with your account and downloads every lesson.",
     "courses_plugin_ready": "Course pages are downloaded from the Courses tab with your account signed in.",
-    "install_courses_plugin": "Get the Courses plugin"
+    "install_courses_plugin": "Get the Courses plugin",
+    "video_or_list": "この動画はリストの一部です。何をダウンロードしますか？",
+    "video_or_list_mix": "この動画は自動ミックスの一部です。何をダウンロードしますか？",
+    "video_or_list_video": "この動画のみ",
+    "video_or_list_list": "リスト全体",
+    "video_or_list_mix_list": "ミックス"
   },
   "about": {
     "tab": {

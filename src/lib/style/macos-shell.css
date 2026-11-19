@@ -73,6 +73,11 @@
   min-width: 0;
 }
 
+.mac-titlebar-center .segmented-btn {
+  height: 28px;
+  min-width: 28px;
+}
+
 .mac-titlebar-actions {
   display: flex;
   align-items: center;
@@ -232,6 +237,9 @@
 .mac-source-list {
   width: var(--sidebar-width);
   min-width: var(--sidebar-width);
+  transition:
+    width 200ms var(--ease-out),
+    min-width 200ms var(--ease-out);
   display: flex;
   flex-direction: column;
   background: transparent;
@@ -279,8 +287,8 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  height: 32px;
-  padding: 0 var(--space-2);
+  height: 36px;
+  padding: 0 var(--space-2) 0 6px;
   border-radius: var(--radius-md);
   color: var(--text);
   font-size: var(--text-base);
@@ -381,6 +389,49 @@
   padding-top: var(--space-3);
 }
 
+[data-shell="mac"][data-sidebar="collapsed"],
+[data-sidebar="collapsed"] {
+  --sidebar-width: 64px;
+}
+
+[data-sidebar="collapsed"] .mac-nav-label,
+[data-sidebar="collapsed"] .mac-nav-badge,
+[data-sidebar="collapsed"] .mac-plugins-toggle {
+  display: none;
+}
+
+[data-sidebar="collapsed"] .mac-nav-section-header {
+  font-size: 0;
+  min-height: 0;
+  height: 1px;
+  width: 24px;
+  margin: 0 auto var(--space-2);
+  padding: 0;
+  background: var(--separator, var(--content-border));
+}
+
+[data-sidebar="collapsed"] .mac-nav-section-header > * {
+  display: none;
+}
+
+[data-sidebar="collapsed"] .mac-nav-item {
+  justify-content: center;
+  padding: 0;
+  height: 44px;
+}
+
+[data-sidebar="collapsed"] .mac-nav-item:has(.mac-nav-badge.live)::after {
+  content: "";
+  position: absolute;
+  top: 7px;
+  right: 10px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--sidebar-bg, var(--bg));
+}
+
 /* Narrow windows: icon-only rail */
 @media (max-width: 860px) {
   [data-shell="mac"] {
@@ -389,14 +440,15 @@
 
   .mac-nav-label,
   .mac-nav-section-header,
-  .mac-nav-badge {
+  .mac-nav-badge,
+  .mac-plugins-toggle {
     display: none;
   }
 
   .mac-nav-item {
     justify-content: center;
     padding: 0;
-    height: 34px;
+    height: 44px;
   }
 
   .mac-nav-item :global(.nav-tile) {
@@ -405,6 +457,12 @@
 
   .mac-nav-item :global(.nav-moscat) {
     --icon-size: 26px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mac-source-list {
+    transition: none;
   }
 }
 
@@ -944,6 +1002,46 @@
   gap: 0;
 }
 
+.home-mac {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+.home-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.home-backdrop::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: clamp(28px, 17vh, 190px);
+  width: min(820px, 110%);
+  aspect-ratio: 1.5;
+  transform: translate(-50%, -38%);
+  border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--accent) 17%, transparent), transparent 72%);
+}
+
+.home-backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(color-mix(in srgb, var(--text) 9%, transparent) 1px, transparent 1.2px);
+  background-size: 22px 22px;
+  -webkit-mask-image: radial-gradient(ellipse 55% 42% at 50% 30%, #000 20%, transparent 75%);
+  mask-image: radial-gradient(ellipse 55% 42% at 50% 30%, #000 20%, transparent 75%);
+}
+
 .home-stage {
   flex: 1;
   min-height: 0;
@@ -961,7 +1059,7 @@
 .home-stage-inner {
   margin: auto 0;
   width: 100%;
-  max-width: 560px;
+  max-width: 620px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1054,7 +1152,7 @@
 .home-mac-hero {
   flex-shrink: 0;
   width: 100%;
-  max-width: 560px;
+  max-width: 620px;
   padding: 0 0 var(--space-3);
   display: flex;
   align-items: flex-end;
@@ -1067,7 +1165,7 @@
   flex-shrink: 0;
   width: 100%;
   min-width: 0;
-  max-width: 560px;
+  max-width: 620px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1078,4 +1176,21 @@
   justify-content: flex-start;
   margin-bottom: var(--space-1);
 }
+
+.stats-line {
+  align-self: center;
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+  text-decoration: none;
+  padding: 2px 10px;
+  border-radius: var(--radius-full);
+  transition: color var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out);
+}
+
+.stats-line:hover {
+  color: var(--text-muted);
+  background: var(--fill-1);
+}
+
 

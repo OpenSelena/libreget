@@ -65,7 +65,9 @@
     "section_plugins": "插件",
     "expand_plugins": "展开插件",
     "collapse_plugins": "收起插件",
-    "tools": "工具"
+    "tools": "工具",
+    "collapse_sidebar": "收起侧边栏",
+    "expand_sidebar": "展开侧边栏"
   },
   "command_palette": {
     "open": "搜索",
@@ -87,7 +89,14 @@
     "action_advanced": "高级选项",
     "action_simple": "回到简洁视图",
     "value_line": "已用 LibreGet 保存 {{count}} 个文件 · {{size}}",
-    "value_first": "你的第一次下载大约需要一分钟。私有内容只需你的浏览器 cookies。"
+    "value_first": "你的第一次下载大约需要一分钟。私有内容只需你的浏览器 cookies。",
+    "more": "更多下载方式",
+    "paste": "粘贴",
+    "paste_empty": "剪贴板里没有链接。",
+    "submit": "下载此链接",
+    "saved_count_one": "{{count}} 个文件",
+    "saved_count_other": "{{count}} 个文件",
+    "saved_line": "已保存 {{files}} · {{size}}"
   },
   "tools": {
     "tab": "工具",
@@ -3248,7 +3257,11 @@
     "view_downloads": "View downloads",
     "eta_left": "About {{eta}} left",
     "view_history": "历史记录",
-    "view_tools": "工具"
+    "view_tools": "工具",
+    "leftovers_title": "删除此下载留下的文件？",
+    "leftovers_body": "此下载留下了 {{count}} 个不完整的文件，共 {{size}}。已完成的文件不会受影响。",
+    "leftovers_keep": "移除但保留文件",
+    "leftovers_delete": "移除并删除文件"
   },
   "toast": {
     "download_preparing": "正在准备下载...",
@@ -3810,7 +3823,8 @@
       "copy_to_clipboard_on_hotkey_desc": "自动将下载的文件复制到剪贴板以便粘贴",
       "filename_template": "文件名模板",
       "filename_template_desc": "yt-dlp 下载文件的输出模板",
-      "filename_template_preview": "预览：{{preview}}"
+      "filename_template_preview": "预览：{{preview}}",
+      "remove_saved_dir": "Remove"
     },
     "update_available": "LibreGet {{version}} 可用",
     "update_button": "立即更新",
@@ -4375,7 +4389,12 @@
     },
     "courses_plugin_needed": "这是一个课程页面。免费的 Courses 插件可用你的账号登录并下载每一节课。",
     "courses_plugin_ready": "课程页面在「课程」标签页中下载，需先登录你的账号。",
-    "install_courses_plugin": "获取 Courses 插件"
+    "install_courses_plugin": "获取 Courses 插件",
+    "video_or_list": "此视频属于一个列表。你想下载什么？",
+    "video_or_list_mix": "此视频属于一个自动合辑。你想下载什么？",
+    "video_or_list_video": "只下载此视频",
+    "video_or_list_list": "整个列表",
+    "video_or_list_mix_list": "整个合辑"
   },
   "about": {
     "tab": {

@@ -28,6 +28,7 @@ export type SearchResult = {
 };
 
 export type HomeInputMode = "url" | "batch" | "torrent" | "p2p";
+export type MoreAction = "batch" | "torrent" | "advanced" | "p2p";
 
 export function isUrl(value: string): boolean {
   return (

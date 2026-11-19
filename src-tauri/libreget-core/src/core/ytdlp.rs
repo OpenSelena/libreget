@@ -4226,6 +4226,9 @@ fn spawn_stdout_reader(
             }
             if let Some(dest) = parse_destination_line(&line) {
                 let dest_path = PathBuf::from(&dest);
+                if let Some(id) = crate::core::log_hook::current_download_id() {
+                    crate::core::leftovers::note_task_destination(id, &dest_path);
+                }
                 let ext = dest_path
                     .extension()
                     .and_then(|e| e.to_str())

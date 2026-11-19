@@ -8,6 +8,7 @@
   import QualityPicker from "$components/librebox/QualityPicker.svelte";
   import FormatSelector from "$components/librebox/FormatSelector.svelte";
   import CookieAccountPicker from "$components/librebox/CookieAccountPicker.svelte";
+  import OutputLocationPicker from "$components/librebox/OutputLocationPicker.svelte";
   import LibreboxAdvanced from "$components/librebox/LibreboxAdvanced.svelte";
   import MediaPreview from "$components/librebox/MediaPreview.svelte";
   import BatchDownload from "$components/librebox/BatchDownload.svelte";
@@ -17,16 +18,20 @@
   import HomeHero from "$components/home/HomeHero.svelte";
   import HomeUrlBar from "$components/home/HomeUrlBar.svelte";
   import HomeInspector from "$components/home/HomeInspector.svelte";
+  import VideoOrListChoice from "$components/home/VideoOrListChoice.svelte";
+  import { videoOrListLink } from "$lib/home/video-or-list";
   import {
     type LibreState,
     type PlatformInfo,
     type SearchResult,
     type HomeInputMode,
+    type MoreAction,
     showInspectorForState,
     showLibreboxForState,
     isUrl,
     extractUrls,
   } from "$lib/home/librebox-controller";
+  import { pluralKey } from "$lib/home/plural";
   import { getDownloads, formatBytes } from "$lib/stores/download-store.svelte";
   import { getDownloadStats } from "$lib/stores/download-stats.svelte";
   import { getSettings, updateSettings } from "$lib/stores/settings-store.svelte";
@@ -66,11 +71,13 @@
   const COURSE_PLATFORMS = new Set(["hotmart", "udemy"]);
 
   let url = $state(getLibreboxDraftUrl());
+  let urlInput = $state<HTMLInputElement | null>(null);
   let homeInputMode = $state<HomeInputMode>("url");
   let libreState = $state<LibreState>({ kind: "idle" });
   let debounceTimer = $state<ReturnType<typeof setTimeout> | null>(null);
   let downloadMode = $state<"auto" | "audio" | "mute">("auto");
   let selectedQuality = $state("best");
+  let selectedOutputDir = $state("");
   let clipStart = $state("");
   let clipEnd = $state("");
   let scheduleAt = $state("");
@@ -78,6 +85,8 @@
   let playlistEntries = $state<{ index: number; title: string; url: string }[]>([]);
   let selectedPlaylistItems = $state<Set<number>>(new Set());
   let playlistLoading = $state(false);
+  let listChoice = $state<"video" | "list">("video");
+  let videoOrList = $derived(videoOrListLink(url.trim()));
   let torrentEntries = $state<{ index: number; path: string; size_bytes: number }[]>([]);
   let selectedTorrentFiles = $state<Set<number>>(new Set());
   let torrentLoading = $state(false);
@@ -456,7 +465,7 @@
       if (url.trim() !== value) return;
       if (result.supported) {
         loadCookieAccounts(value);
-        if (result.content_type === "playlist") {
+        if (result.content_type === "playlist" && !videoOrListLink(value)) {
           loadPlaylistEntries(value);
         }
         if (isTorrentUrl(value)) {
@@ -521,6 +530,17 @@
 
   function selectNonePlaylist() {
     selectedPlaylistItems = new Set();
+  }
+
+  function chooseVideoOrList(next: "video" | "list") {
+    listChoice = next;
+    if (next === "list" && playlistEntries.length === 0 && !playlistLoading) {
+      loadPlaylistEntries(url.trim());
+    }
+  }
+
+  function wantsList(info: PlatformInfo): boolean {
+    return info.content_type === "playlist" && (!videoOrList || listChoice === "list");
   }
 
   function isTorrentUrl(value: string): boolean {
@@ -712,7 +732,7 @@
       return;
     }
 
-    const isPlaylist = info.content_type === "playlist" && playlistEntries.length > 0;
+    const isPlaylist = wantsList(info) && playlistEntries.length > 0;
     if (isPlaylist && selectedPlaylistItems.size === 0) {
       showToast("error", $t("librebox.playlist_none_selected") as string);
       return;
@@ -725,15 +745,21 @@
     }
 
     const settings = getSettings();
-    let outputDir = settings?.download.default_output_dir ?? "";
+    const hasExplicitOutputDir = !!selectedOutputDir;
+    let outputDir = selectedOutputDir || settings?.download.default_output_dir || "";
 
-    if ((settings?.download.always_ask_path && !settings?.download.auto_download_on_paste) || !outputDir) {
+    if (
+      (!hasExplicitOutputDir &&
+        settings?.download.always_ask_path &&
+        !settings?.download.auto_download_on_paste) ||
+      !outputDir
+    ) {
       const selected = await open({
         directory: true,
         title: $t("settings.download.default_output_dir"),
       });
       if (!selected) return;
-      outputDir = selected;
+      outputDir = selected as string;
     }
 
     const currentUrl = url.trim();
@@ -827,15 +853,21 @@
     const batchUrls = libreState.urls;
 
     const settings = getSettings();
-    let outputDir = settings?.download.default_output_dir ?? "";
+    const hasExplicitOutputDir = !!selectedOutputDir;
+    let outputDir = selectedOutputDir || settings?.download.default_output_dir || "";
 
-    if ((settings?.download.always_ask_path && !settings?.download.auto_download_on_paste) || !outputDir) {
+    if (
+      (!hasExplicitOutputDir &&
+        settings?.download.always_ask_path &&
+        !settings?.download.auto_download_on_paste) ||
+      !outputDir
+    ) {
       const selected = await open({
         directory: true,
         title: $t("settings.download.default_output_dir"),
       });
       if (!selected) return;
-      outputDir = selected;
+      outputDir = selected as string;
     }
 
     // B34: conferir antes de enfileirar. Sem isto, uma URL sem suporte ou
@@ -899,15 +931,21 @@
     p2pReceiveUrl = "";
 
     const settings = getSettings();
-    let outputDir = settings?.download.default_output_dir ?? "";
+    const hasExplicitOutputDir = !!selectedOutputDir;
+    let outputDir = selectedOutputDir || settings?.download.default_output_dir || "";
 
-    if ((settings?.download.always_ask_path && !settings?.download.auto_download_on_paste) || !outputDir) {
+    if (
+      (!hasExplicitOutputDir &&
+        settings?.download.always_ask_path &&
+        !settings?.download.auto_download_on_paste) ||
+      !outputDir
+    ) {
       const selected = await open({
         directory: true,
         title: $t("settings.download.default_output_dir"),
       });
       if (!selected) return;
-      outputDir = selected;
+      outputDir = selected as string;
     }
 
     libreState = { kind: "preparing", platform: "p2p" };
@@ -991,6 +1029,32 @@
     }
   }
 
+  function handleHomeMoreAction(action: MoreAction) {
+    if (action === "advanced") {
+      advancedMode = true;
+    } else {
+      handleHomeModeChange(action);
+    }
+  }
+
+  function handleSubmit() {
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+      debounceTimer = null;
+    }
+    const trimmed = url.trim();
+    if (!trimmed) return;
+    if (libreState.kind === "detected") {
+      void handleAction();
+    } else {
+      const urls = extractUrls(trimmed);
+      if (urls.length === 1) {
+        libreState = { kind: "detecting" };
+        detectPlatform(urls[0]);
+      }
+    }
+  }
+
   function handleDismiss() {
     clearMediaPreview();
     libreState = { kind: "idle" };
@@ -999,6 +1063,7 @@
 </script>
 
 <div class="home-mac" class:home-mac--stage={isStage}>
+  <div class="home-backdrop" aria-hidden="true"></div>
   {#if advancedMode}
     <div class="home-mac-workspace">
       <div class="home-mac-hero">
@@ -1054,7 +1119,13 @@
               variant="stage"
               bind:url
               bind:mode={homeInputMode}
+              bind:inputEl={urlInput}
+              busy={libreState.kind === "detecting" || libreState.kind === "searching"}
+              busyLabel={libreState.kind === "detecting" ? $t('librebox.detecting') : libreState.kind === "searching" ? $t('librebox.searching') : ""}
+              showSubmit={libreState.kind === "detected" || (libreState.kind === "idle" && url.trim().length > 0)}
               onInput={handleInput}
+              onSubmit={handleSubmit}
+              onMore={handleHomeMoreAction}
               onModeChange={handleHomeModeChange}
               onAdvanced={() => { advancedMode = true; }}
             />
@@ -1077,6 +1148,16 @@
                 {$t('librebox.open_downloads')}
               </button>
             </div>
+
+          {:else if libreState.kind === "idle" && !addedNoticeActive}
+            {#if dlStats.totalDownloads > 0}
+              <a href="/downloads" class="stats-line">
+                {$t("home.saved_line", {
+                  files: $t(pluralKey("home.saved_count", dlStats.totalDownloads), { count: dlStats.totalDownloads.toLocaleString() }),
+                  size: formatBytes(dlStats.totalBytes),
+                })}
+              </a>
+            {/if}
 
           {:else if libreState.kind === "batch"}
             <div class="batch-options">
@@ -1115,7 +1196,14 @@
           <HomeInspector open={showInspector} title={$t('home.inspector_title')}>
             {#if libreState.kind === "detected"}
               <MediaPreview bind:mediaPreview bind:imageLoading={previewImageLoading} />
-              {#if libreState.info.content_type === "playlist"}
+              {#if libreState.info.content_type === "playlist" && videoOrList}
+                <VideoOrListChoice
+                  choice={listChoice}
+                  isMix={videoOrList.isMix}
+                  onChoose={chooseVideoOrList}
+                />
+              {/if}
+              {#if wantsList(libreState.info)}
                 <div class="playlist-picker">
                   <div class="playlist-head">
                     <span class="playlist-count">
@@ -1192,7 +1280,7 @@
                   <button class="download-primary-btn" onclick={handleAction}>{$t(libreState.info.platform === "udemy" ? 'librebox.go_to_udemy' : 'librebox.go_to_hotmart')}</button>
                 {/if}
               {:else}
-                {@const playlistBlocked = libreState.info.content_type === "playlist" && playlistEntries.length > 0 && selectedPlaylistItems.size === 0}
+                {@const playlistBlocked = wantsList(libreState.info) && playlistEntries.length > 0 && selectedPlaylistItems.size === 0}
                 {@const torrentBlocked = torrentEntries.length > 0 && selectedTorrentFiles.size === 0}
                 {#if libreState.info.platform === "bilibili"}
                   <BilibiliPreviewExtras {url} accountSlug={selectedCookieSlug && selectedCookieSlug !== "_anonymous" ? selectedCookieSlug : null} />
@@ -1206,6 +1294,7 @@
                       {#if downloadMode !== "audio"}
                         <QualityPicker bind:selectedQuality {selectedFormatId} {availableHeights} {hasAudioOnly} />
                       {/if}
+                      <OutputLocationPicker bind:selectedOutputDir />
                       {#if cookieAccounts.length > 1}
                         <CookieAccountPicker accounts={cookieAccounts} bind:selectedSlug={selectedCookieSlug} />
                       {/if}

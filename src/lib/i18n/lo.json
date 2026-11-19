@@ -65,7 +65,9 @@
     "section_plugins": "ປລັກອິນ",
     "expand_plugins": "ຂະຫຍາຍປລັກອິນ",
     "collapse_plugins": "ຫຍໍ້ປລັກອິນ",
-    "tools": "ເຄື່ອງມື"
+    "tools": "ເຄື່ອງມື",
+    "collapse_sidebar": "ຫຍໍ້ແຖບຂ້າງ",
+    "expand_sidebar": "ຂະຫຍາຍແຖບຂ້າງ"
   },
   "command_palette": {
     "open": "ຄົ້ນຫາ",
@@ -87,7 +89,14 @@
     "action_advanced": "ຕົວເລືອກຂັ້ນສູງ",
     "action_simple": "ກັບໄປມຸມມອງແບບງ່າຍ",
     "value_line": "{{count}} ໄຟລ໌ · {{size}} ບັນທຶກດ້ວຍ LibreGet",
-    "value_first": "ການດາວໂຫຼດຄັ້ງທຳອິດໃຊ້ເວລາປະມານໜຶ່ງນາທີ. ເນື້ອຫາສ່ວນຕົວຕ້ອງການພຽງຄຸກກີ້ຂອງບຣາວເຊີທ່ານ."
+    "value_first": "ການດາວໂຫຼດຄັ້ງທຳອິດໃຊ້ເວລາປະມານໜຶ່ງນາທີ. ເນື້ອຫາສ່ວນຕົວຕ້ອງການພຽງຄຸກກີ້ຂອງບຣາວເຊີທ່ານ.",
+    "more": "ວິທີດາວໂຫຼດອື່ນໆ",
+    "paste": "ວາງ",
+    "paste_empty": "ບໍ່ມີລິ້ງໃນຄລິບບອດ.",
+    "submit": "ດາວໂຫຼດລິ້ງນີ້",
+    "saved_count_one": "{{count}} ໄຟລ໌",
+    "saved_count_other": "{{count}} ໄຟລ໌",
+    "saved_line": "ບັນທຶກແລ້ວ {{files}} · {{size}}"
   },
   "tools": {
     "tab": "ເຄື່ອງມື",
@@ -3248,7 +3257,11 @@
     "view_downloads": "View downloads",
     "eta_left": "About {{eta}} left",
     "view_history": "ປະຫວັດ",
-    "view_tools": "ເຄື່ອງມື"
+    "view_tools": "ເຄື່ອງມື",
+    "leftovers_title": "ລຶບສິ່ງທີ່ການດາວໂຫຼດນີ້ປະໄວ້ບໍ?",
+    "leftovers_body": "ການດາວໂຫຼດນີ້ເຫຼືອໄຟລ໌ບໍ່ຄົບ {{count}} ໄຟລ໌, ລວມ {{size}}. ໄຟລ໌ທີ່ສຳເລັດແລ້ວຈະບໍ່ຖືກແຕະຕ້ອງ.",
+    "leftovers_keep": "ເອົາອອກ ແລະ ເກັບໄຟລ໌ໄວ້",
+    "leftovers_delete": "ເອົາອອກ ແລະ ລຶບໄຟລ໌"
   },
   "toast": {
     "download_preparing": "ກຳລັງກຽມດາວໂຫຼດ...",
@@ -3810,7 +3823,8 @@
       "copy_to_clipboard_on_hotkey_desc": "ສຳເນົາໄຟລ໌ທີ່ດາວໂຫຼດໄປຄລິບບອດອັດຕະໂນມັດ ເພື່ອວາງໄດ້ງ່າຍ",
       "filename_template": "ແມ່ແບບຊື່ໄຟລ໌",
       "filename_template_desc": "ແມ່ແບບຜົນລັບ yt-dlp ສຳລັບໄຟລ໌ທີ່ດາວໂຫຼດ",
-      "filename_template_preview": "ຕົວຢ່າງ: {{preview}}"
+      "filename_template_preview": "ຕົວຢ່າງ: {{preview}}",
+      "remove_saved_dir": "Remove"
     },
     "update_available": "LibreGet {{version}} ພ້ອມໃຫ້ອັບເດດແລ້ວ",
     "update_button": "ອັບເດດດຽວນີ້",
@@ -4375,7 +4389,12 @@
     },
     "courses_plugin_needed": "ນີ້ແມ່ນໜ້າຄອສຮຽນ. ປລັກອິນ Courses ຟຣີຈະເຂົ້າສູ່ລະບົບດ້ວຍບັນຊີຂອງທ່ານ ແລະ ດາວໂຫຼດທຸກບົດຮຽນ.",
     "courses_plugin_ready": "ໜ້າຄອສຮຽນຈະຖືກດາວໂຫຼດຈາກແຖບ Courses ໂດຍເຂົ້າສູ່ລະບົບບັນຊີຂອງທ່ານ.",
-    "install_courses_plugin": "ຮັບປລັກອິນ Courses"
+    "install_courses_plugin": "ຮັບປລັກອິນ Courses",
+    "video_or_list": "ວິດີໂອນີ້ເປັນສ່ວນໜຶ່ງຂອງລາຍການ. ທ່ານຕ້ອງການດາວໂຫຼດຫຍັງ?",
+    "video_or_list_mix": "ວິດີໂອນີ້ເປັນສ່ວນໜຶ່ງຂອງມິກອັດຕະໂນມັດ. ທ່ານຕ້ອງການດາວໂຫຼດຫຍັງ?",
+    "video_or_list_video": "ສະເພາະວິດີໂອນີ້",
+    "video_or_list_list": "ລາຍການທັງໝົດ",
+    "video_or_list_mix_list": "ມິກ"
   },
   "about": {
     "tab": {

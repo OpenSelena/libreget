@@ -65,7 +65,9 @@
     "section_plugins": "افزونه‌ها",
     "expand_plugins": "باز کردن افزونه‌ها",
     "collapse_plugins": "بستن افزونه‌ها",
-    "tools": "Tools"
+    "tools": "Tools",
+    "collapse_sidebar": "جمع کردن نوار کناری",
+    "expand_sidebar": "باز کردن نوار کناری"
   },
   "command_palette": {
     "open": "Search",
@@ -87,7 +89,14 @@
     "action_advanced": "Advanced options",
     "action_simple": "Back to the simple view",
     "value_line": "{{count}} files · {{size}} saved with LibreGet",
-    "value_first": "Your first download takes about a minute. Private content only needs your browser cookies."
+    "value_first": "Your first download takes about a minute. Private content only needs your browser cookies.",
+    "more": "راه‌های دیگر دانلود",
+    "paste": "جای‌گذاری",
+    "paste_empty": "در کلیپ‌بورد لینکی نیست.",
+    "submit": "دانلود این لینک",
+    "saved_count_one": "{{count}} فایل",
+    "saved_count_other": "{{count}} فایل",
+    "saved_line": "{{files}} · {{size}} ذخیره شد"
   },
   "tools": {
     "tab": "Tools",
@@ -3248,7 +3257,11 @@
     "view_downloads": "View downloads",
     "eta_left": "About {{eta}} left",
     "view_history": "History",
-    "view_tools": "Tools"
+    "view_tools": "Tools",
+    "leftovers_title": "آنچه این دانلود به جا گذاشته حذف شود؟",
+    "leftovers_body": "این دانلود {{count}} فایل ناقص به حجم کل {{size}} به جا گذاشت. به فایل‌های کامل دست زده نمی‌شود.",
+    "leftovers_keep": "حذف و نگه داشتن فایل‌ها",
+    "leftovers_delete": "حذف و پاک کردن فایل‌ها"
   },
   "toast": {
     "download_preparing": "در حال آماده‌سازی دانلود…",
@@ -3810,7 +3823,8 @@
       "copy_to_clipboard_on_hotkey_desc": "Automatically copy the downloaded file to clipboard for easy pasting",
       "filename_template": "Filename template",
       "filename_template_desc": "yt-dlp output template for downloaded files",
-      "filename_template_preview": "Preview: {{preview}}"
+      "filename_template_preview": "Preview: {{preview}}",
+      "remove_saved_dir": "Remove"
     },
     "update_available": "LibreGet {{version}} is available",
     "update_button": "update now",
@@ -4375,7 +4389,12 @@
     },
     "courses_plugin_needed": "This is a course page. The free Courses plugin signs in with your account and downloads every lesson.",
     "courses_plugin_ready": "Course pages are downloaded from the Courses tab with your account signed in.",
-    "install_courses_plugin": "Get the Courses plugin"
+    "install_courses_plugin": "Get the Courses plugin",
+    "video_or_list": "این ویدیو بخشی از یک فهرست است. چه چیزی را می‌خواهید دانلود کنید؟",
+    "video_or_list_mix": "این ویدیو بخشی از یک میکس خودکار است. چه چیزی را می‌خواهید دانلود کنید؟",
+    "video_or_list_video": "فقط این ویدیو",
+    "video_or_list_list": "کل فهرست",
+    "video_or_list_mix_list": "میکس"
   },
   "about": {
     "tab": {

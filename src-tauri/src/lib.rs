@@ -963,6 +963,7 @@ pub fn run() {
             commands::downloads::reorder_queue,
             commands::downloads::retry_download,
             commands::downloads::remove_download,
+            commands::downloads::failed_download_leftovers,
             commands::downloads::update_max_concurrent,
             commands::downloads::clear_finished_downloads,
             commands::downloads::get_download_log,
