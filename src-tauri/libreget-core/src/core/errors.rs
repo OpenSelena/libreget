@@ -1,9 +1,16 @@
+pub(crate) const DOUYIN_MEDIA_FORBIDDEN: &str = "Douyin media server returned HTTP 403";
+
 /// Categorias que não adianta tentar de novo: a fonte está quebrada ou o
 /// pós-processamento falhou por falta de dados, não por azar de rede.
 pub fn is_terminal_category(category: &str) -> bool {
     matches!(
         category,
-        "not_found" | "broken_source" | "postprocess_failed" | "restricted" | "auth_required"
+        "not_found"
+            | "broken_source"
+            | "postprocess_failed"
+            | "restricted"
+            | "auth_required"
+            | "source_forbidden"
     )
 }
 
@@ -31,6 +38,13 @@ pub fn classify_download_error(error: &str) -> (&str, &str) {
         return (
             "postprocess_failed",
             "Post-processing failed: the downloaded streams are incomplete or unsupported.",
+        );
+    }
+
+    if error.contains(DOUYIN_MEDIA_FORBIDDEN) {
+        return (
+            "source_forbidden",
+            "Douyin refused the media download. Try again or select a lower quality.",
         );
     }
 

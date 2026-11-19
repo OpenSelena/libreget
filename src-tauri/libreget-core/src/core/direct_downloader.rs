@@ -165,7 +165,7 @@ fn is_fatal_error(err: &anyhow::Error) -> bool {
 /// A 403 is the one fatal code worth one more look: plenty of CDNs answer it
 /// to a request that does not smell like a browser and then serve the file
 /// happily to the very same URL with a couple of extra headers.
-fn is_forbidden_error(err: &anyhow::Error) -> bool {
+pub(crate) fn is_forbidden_error(err: &anyhow::Error) -> bool {
     err.to_string().contains("HTTP 403")
 }
 

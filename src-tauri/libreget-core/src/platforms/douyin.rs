@@ -5,6 +5,7 @@ use async_trait::async_trait;
 use reqwest::header::{HeaderMap, HeaderValue, COOKIE, REFERER, USER_AGENT};
 use tokio::sync::{mpsc, OnceCell};
 
+use crate::core::errors::DOUYIN_MEDIA_FORBIDDEN;
 use crate::core::{direct_downloader, http_client};
 use crate::models::media::{
     DownloadOptions, DownloadResult, MediaInfo, MediaType, VideoQuality as MediaVideoQuality,
@@ -205,47 +206,44 @@ impl DouyinDownloader {
     }
 
     pub fn build_media_info(video: ShareVideo) -> MediaInfo {
+        let short_edge = video.width.min(video.height);
+        let standard_url = video.play_url.replace("ratio=1080p", "ratio=720p");
+        let high_url = video.play_url.replace("ratio=720p", "ratio=1080p");
+        let has_ratio_variants = standard_url != high_url;
         let mut qualities = Vec::new();
 
-        let scale = |w: u32, h: u32, target: u32| -> (u32, u32) {
-            if w >= h {
-                let scaled = (w * target).checked_div(h).unwrap_or(target * 16 / 9);
-                (scaled, target)
+        let make_quality = |target: u32, url: String| {
+            let (width, height) = if short_edge > target {
+                let scale =
+                    |edge| (u64::from(edge) * u64::from(target) / u64::from(short_edge)) as u32;
+                (scale(video.width), scale(video.height))
             } else {
-                let scaled = (h * target).checked_div(w).unwrap_or(target * 16 / 9);
-                (target, scaled)
+                (video.width, video.height)
+            };
+            MediaVideoQuality {
+                label: if target == 0 {
+                    "best".to_string()
+                } else {
+                    format!("{target}p")
+                },
+                width,
+                height,
+                url,
+                format: "mp4".to_string(),
             }
         };
 
-        if video.height >= 1080 || video.width >= 1080 {
-            let (w1080, h1080) = scale(video.width, video.height, 1080);
-            qualities.push(MediaVideoQuality {
-                label: "1080p".to_string(),
-                width: w1080,
-                height: h1080,
-                url: video.play_url.replace("ratio=720p", "ratio=1080p"),
-                format: "mp4".to_string(),
-            });
+        // A ratio is a request hint. Only offer 1080p when the share metadata
+        // can support it in either orientation and the URL can request it.
+        if short_edge >= 1080 && has_ratio_variants {
+            qualities.push(make_quality(1080, high_url));
         }
-
-        let (w720, h720) = scale(video.width, video.height, 720);
-        qualities.push(MediaVideoQuality {
-            label: "720p".to_string(),
-            width: w720,
-            height: h720,
-            url: video.play_url.replace("ratio=1080p", "ratio=720p"),
-            format: "mp4".to_string(),
-        });
-
-        if qualities.is_empty() {
-            qualities.push(MediaVideoQuality {
-                label: "best".to_string(),
-                width: video.width,
-                height: video.height,
-                url: video.play_url.clone(),
-                format: "mp4".to_string(),
-            });
-        }
+        let standard_edge = if has_ratio_variants {
+            short_edge.min(720)
+        } else {
+            short_edge
+        };
+        qualities.push(make_quality(standard_edge, standard_url));
 
         MediaInfo {
             title: video.title,
@@ -380,17 +378,18 @@ impl PlatformDownloader for DouyinDownloader {
     ) -> anyhow::Result<DownloadResult> {
         let _ = progress.send(ProgressUpdate::percent(0.0)).await;
 
-        let quality = opts
+        let first_quality = opts
             .quality
-            .as_ref()
+            .as_deref()
             .and_then(|q| {
-                let q_str = q.trim();
-                info.available_qualities
-                    .iter()
-                    .find(|vq| vq.label == q_str || format!("{}p", vq.height) == q_str)
+                let requested = q.trim().trim_end_matches('p');
+                info.available_qualities.iter().position(|vq| {
+                    vq.label.trim_end_matches('p') == requested
+                        || vq.height.to_string() == requested
+                })
             })
-            .or_else(|| info.available_qualities.first())
-            .ok_or_else(|| anyhow!("No video URL available"))?;
+            .unwrap_or(0);
+        let mut qualities = info.available_qualities[first_quality..].iter().peekable();
 
         let title = if info.title.trim().is_empty() {
             "Douyin Video"
@@ -416,22 +415,40 @@ impl PlatformDownloader for DouyinDownloader {
 
         let client = Self::client()?;
 
-        let bytes = direct_downloader::download_direct_with_headers(
-            &client,
-            &quality.url,
-            &output,
-            progress.clone(),
-            Some(headers),
-            Some(&opts.cancel_token),
-        )
-        .await?;
+        while let Some(quality) = qualities.next() {
+            match direct_downloader::download_direct_with_headers(
+                &client,
+                &quality.url,
+                &output,
+                progress.clone(),
+                Some(headers.clone()),
+                Some(&opts.cancel_token),
+            )
+            .await
+            {
+                Ok(bytes) => {
+                    return Ok(DownloadResult {
+                        file_path: output,
+                        file_size_bytes: bytes,
+                        duration_seconds: info.duration_seconds.unwrap_or(0.0),
+                        torrent_id: None,
+                    });
+                }
+                Err(error) if direct_downloader::is_forbidden_error(&error) => {
+                    let Some(next) = qualities.peek() else {
+                        return Err(error.context(DOUYIN_MEDIA_FORBIDDEN));
+                    };
+                    tracing::warn!(
+                        from = %quality.label,
+                        to = %next.label,
+                        "[douyin] media stream returned HTTP 403; trying lower quality"
+                    );
+                }
+                Err(error) => return Err(error),
+            }
+        }
 
-        Ok(DownloadResult {
-            file_path: output,
-            file_size_bytes: bytes,
-            duration_seconds: info.duration_seconds.unwrap_or(0.0),
-            torrent_id: None,
-        })
+        Err(anyhow!("No video URL available"))
     }
 }
 
@@ -498,5 +515,147 @@ mod tests {
             .url
             .contains("ratio=1080p"));
         assert!(media_info.available_qualities[1].url.contains("ratio=720p"));
+    }
+
+    #[test]
+    fn does_not_offer_1080p_when_only_the_long_edge_reaches_1080() {
+        for (width, height) in [(1280, 720), (720, 1280)] {
+            let video = ShareVideo {
+                video_id: "test".into(),
+                title: "Test Douyin Video".into(),
+                author: "Test Creator".into(),
+                duration_seconds: None,
+                thumbnail_url: None,
+                width,
+                height,
+                play_url: "https://example.com/play/?ratio=720p".into(),
+            };
+            let info = DouyinDownloader::build_media_info(video);
+            assert_eq!(info.available_qualities.len(), 1);
+            let stream = &info.available_qualities[0];
+            assert_eq!(stream.label, "720p");
+            assert_eq!((stream.width, stream.height), (width, height));
+        }
+    }
+
+    #[tokio::test]
+    async fn downloads_lower_quality_after_forbidden_response() {
+        use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let (requests, mut received) = mpsc::unbounded_channel();
+        let media = b"\x00\x00\x00\x18ftypmp42\x00\x00\x00\x00mp42isom";
+        let server = tokio::spawn(async move {
+            while let Ok((stream, _)) = listener.accept().await {
+                let mut stream = BufReader::new(stream);
+                let mut line = String::new();
+                if stream.read_line(&mut line).await.unwrap() == 0 {
+                    continue;
+                }
+                let (method, path) = {
+                    let mut parts = line.split_whitespace();
+                    (
+                        parts.next().unwrap().to_string(),
+                        parts.next().unwrap().to_string(),
+                    )
+                };
+                loop {
+                    line.clear();
+                    if stream.read_line(&mut line).await.unwrap() == 0 || line == "\r\n" {
+                        break;
+                    }
+                }
+                requests.send(path.clone()).unwrap();
+                let mut stream = stream.into_inner();
+                if path == "/play?ratio=720p" {
+                    let headers = format!(
+                        "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nContent-Type: video/mp4\r\nConnection: close\r\n\r\n",
+                        media.len()
+                    );
+                    stream.write_all(headers.as_bytes()).await.unwrap();
+                    if method != "HEAD" {
+                        stream.write_all(media).await.unwrap();
+                    }
+                } else {
+                    stream
+                        .write_all(b"HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
+                        .await
+                        .unwrap();
+                }
+            }
+        });
+        let info = DouyinDownloader::build_media_info(ShareVideo {
+            video_id: "test".into(),
+            title: "Test Douyin Video".into(),
+            author: "Test Creator".into(),
+            duration_seconds: None,
+            thumbnail_url: None,
+            width: 1920,
+            height: 1080,
+            play_url: format!("http://{addr}/play?ratio=720p"),
+        });
+        let output_dir =
+            std::env::temp_dir().join(format!("libreget-douyin-{}", uuid::Uuid::new_v4()));
+        let mut options = DownloadOptions {
+            quality: Some("best".into()),
+            output_dir: output_dir.clone(),
+            filename_template: None,
+            download_subtitles: false,
+            include_auto_subtitles: false,
+            download_mode: None,
+            audio_format: None,
+            format_id: None,
+            referer: None,
+            extra_headers: None,
+            page_url: None,
+            user_agent: None,
+            cancel_token: tokio_util::sync::CancellationToken::new(),
+            concurrent_fragments: 1,
+            ytdlp_path: None,
+            torrent_listen_port: None,
+            torrent_id_slot: None,
+            custom_ytdlp_args: None,
+            torrent_files: None,
+            torrent_auto_trackers: false,
+            torrent_upnp: false,
+        };
+        let (progress, _updates) = mpsc::channel(32);
+        let downloader = DouyinDownloader::new();
+        let result = downloader.download(&info, &options, progress.clone()).await;
+        if result.is_err() {
+            server.abort();
+            let _ = std::fs::remove_dir_all(output_dir);
+        }
+        let downloaded = result.expect("403 at 1080p should fall back to 720p");
+        assert_eq!(std::fs::read(&downloaded.file_path).unwrap(), media);
+        let best_requests: Vec<_> = std::iter::from_fn(|| received.try_recv().ok()).collect();
+        assert_eq!(best_requests.first().unwrap(), "/play?ratio=1080p");
+        assert_eq!(best_requests.last().unwrap(), "/play?ratio=720p");
+
+        options.quality = Some("720".into());
+        downloader
+            .download(&info, &options, progress.clone())
+            .await
+            .unwrap();
+        let explicit_requests: Vec<_> = std::iter::from_fn(|| received.try_recv().ok()).collect();
+        assert!(!explicit_requests.is_empty());
+        assert!(explicit_requests
+            .iter()
+            .all(|path| path == "/play?ratio=720p"));
+
+        let mut rejected = info;
+        rejected.available_qualities.truncate(1);
+        options.quality = Some("best".into());
+        let error = downloader
+            .download(&rejected, &options, progress)
+            .await
+            .unwrap_err();
+        server.abort();
+        std::fs::remove_dir_all(&options.output_dir).unwrap();
+        assert_eq!(
+            crate::core::errors::classify_download_error(&error.to_string()).0,
+            "source_forbidden"
+        );
     }
 }
