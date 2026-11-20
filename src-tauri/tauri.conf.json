@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "LibreGet",
-  "version": "0.16.15",
+  "version": "0.16.16",
   "identifier": "com.openselena.libreget",
   "build": {
     "beforeDevCommand": "pnpm dev",
