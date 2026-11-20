@@ -3,6 +3,7 @@ pub use libreget_core::platforms::traits;
 pub use libreget_core::platforms::BlueskyDownloader;
 pub use libreget_core::platforms::DirectFileDownloader;
 pub use libreget_core::platforms::DouyinDownloader;
+pub use libreget_core::platforms::GdocsDownloader;
 pub use libreget_core::platforms::GenericYtdlpDownloader;
 pub use libreget_core::platforms::InstagramDownloader;
 pub use libreget_core::platforms::P2pDownloader;
