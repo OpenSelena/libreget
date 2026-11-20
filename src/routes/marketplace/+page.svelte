@@ -278,7 +278,7 @@
       </div>
     {:else if browseError}
       <div class="empty">
-        <img class="empty-state-art" src="/emoji/satellite_antenna.png" alt="" width="72" height="72" draggable="false" />
+        <img class="empty-state-art" src="/mascot/error.png" alt="LibreGet error" width="72" height="72" draggable="false" />
         <p>{$t("marketplace.browse_error")}</p>
         <p class="error-hint">{$t("marketplace.browse_error_hint")}</p>
         <button class="btn btn-secondary retry-btn" onclick={loadBrowse}>{$t("marketplace.browse_retry")}</button>

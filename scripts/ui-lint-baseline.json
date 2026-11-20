@@ -1,11 +1,10 @@
 {
-  "updated_at": "2026-11-10",
+  "updated_at": "2026-11-20",
   "targets": {
     "/": {
-      "control-gap": 6,
-      "control-size": 16,
-      "label-consistency": 5,
-      "text-contrast": 27
+      "control-size": 2,
+      "label-consistency": 3,
+      "text-contrast": 2
     },
     "/about": {
       "control-size": 2,
@@ -32,7 +31,7 @@
     },
     "/marketplace": {
       "control-gap": 1,
-      "control-size": 20,
+      "control-size": 18,
       "label-consistency": 3,
       "text-contrast": 20
     },

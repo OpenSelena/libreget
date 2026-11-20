@@ -1023,26 +1023,14 @@
   overflow: hidden;
 }
 
-.home-backdrop::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: clamp(28px, 17vh, 190px);
-  width: min(820px, 110%);
-  aspect-ratio: 1.5;
-  transform: translate(-50%, -38%);
-  border-radius: 50%;
-  background: radial-gradient(closest-side, color-mix(in srgb, var(--accent) 17%, transparent), transparent 72%);
-}
-
 .home-backdrop::after {
   content: "";
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(color-mix(in srgb, var(--text) 9%, transparent) 1px, transparent 1.2px);
+  background-image: radial-gradient(color-mix(in srgb, var(--text) 7%, transparent) 1px, transparent 1.2px);
   background-size: 22px 22px;
-  -webkit-mask-image: radial-gradient(ellipse 55% 42% at 50% 30%, #000 20%, transparent 75%);
-  mask-image: radial-gradient(ellipse 55% 42% at 50% 30%, #000 20%, transparent 75%);
+  -webkit-mask-image: radial-gradient(circle at 50% 48%, rgba(0, 0, 0, 0.35) 0%, transparent 70%);
+  mask-image: radial-gradient(circle at 50% 48%, rgba(0, 0, 0, 0.35) 0%, transparent 70%);
 }
 
 .home-stage {
@@ -1089,12 +1077,12 @@
   position: absolute;
   top: 50%;
   left: 50%;
-  width: min(560px, 100%);
-  aspect-ratio: 1.4;
+  width: 240px;
+  height: 240px;
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  background: radial-gradient(closest-side, var(--accent-glow), transparent 70%);
-  opacity: 0.9;
+  background: radial-gradient(circle closest-side, var(--accent-glow), transparent 75%);
+  opacity: 0.85;
   pointer-events: none;
   z-index: -1;
 }

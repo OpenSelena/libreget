@@ -33,22 +33,7 @@
   let glyphSize = $derived(Math.round(size * 0.64));
 </script>
 
-{#if iconSvg}
-  <span
-    class="nav-icon nav-tile"
-    class:nav-icon-active={active}
-    style:--tile-from={tile.from}
-    style:--tile-to={tile.to}
-    style:--tile-size="{size}px"
-    aria-hidden="true"
-  >
-    <svg viewBox="0 0 24 24" width={glyphSize} height={glyphSize} fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-      {#each iconSvg.split(" M").map((d, i) => (i === 0 ? d : "M" + d)) as pathD}
-        <path d={pathD} />
-      {/each}
-    </svg>
-  </span>
-{:else if penguin}
+{#if penguin}
   <span
     class="nav-icon nav-penguin"
     class:nav-icon-active={active}
@@ -65,6 +50,21 @@
       draggable="false"
       decoding="async"
     />
+  </span>
+{:else if iconSvg}
+  <span
+    class="nav-icon nav-tile"
+    class:nav-icon-active={active}
+    style:--tile-from={tile.from}
+    style:--tile-to={tile.to}
+    style:--tile-size="{size}px"
+    aria-hidden="true"
+  >
+    <svg viewBox="0 0 24 24" width={glyphSize} height={glyphSize} fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      {#each iconSvg.split(" M").map((d, i) => (i === 0 ? d : "M" + d)) as pathD}
+        <path d={pathD} />
+      {/each}
+    </svg>
   </span>
 {:else}
   <span
