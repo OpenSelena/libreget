@@ -1,5 +1,11 @@
 <script lang="ts">
-  import { loadProfiles, type Profile } from '$lib/api/nami';
+  import {
+    loadProfiles,
+    saveProfile,
+    deleteProfile,
+    httpFetch,
+    type Profile,
+  } from '$lib/api/nami';
   import {
     isActive,
     isCancelling,
@@ -20,6 +26,7 @@
   import {
     getOutputDir,
     getCookiesFile,
+    getBrowserCookies,
     loadSettings,
   } from '$lib/stores/nami_settings_store.svelte';
   import {
@@ -27,6 +34,8 @@
     getDependencyStatus,
     isCheckingDependencies,
   } from '$lib/stores/nami_deps_store.svelte';
+  import { showToast } from '$lib/stores/toast-store.svelte';
+  import { parseProfileUrl, type ParsedProfile } from '$lib/utils/nami_parser';
   import { namiStageLabel, namiStatusMessage, type NamiTranslate } from '$lib/nami/i18n';
   import { onMount, onDestroy } from 'svelte';
   import { t } from '$lib/i18n';
@@ -40,28 +49,28 @@
 
   const tr: NamiTranslate = (key, values) => $t(key, values) as string;
 
-  const RING_RADIUS = 44;
-  const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
-
   const initialDraft = getDraft();
   let url = $state(initialDraft.url);
-  let contentType = $state(initialDraft.contentType);
+  let contentType = $state(initialDraft.contentType || 'all');
   let selectedProfileUrl = $state<string | null>(initialDraft.selectedProfileUrl);
 
   onDestroy(() => {
     setDraft({ url, contentType, selectedProfileUrl });
   });
 
-  function detectPlatform(u: string): string {
-    const low = u.toLowerCase();
-    if (low.includes('instagram.com')) return 'Instagram';
-    if (low.includes('tiktok.com')) return 'TikTok';
-    if (low.includes('facebook.com')) return 'Facebook';
-    if (low.includes('x.com') || low.includes('twitter.com')) return 'X';
-    return 'Other';
+  interface CreatorInfo {
+    platform: string;
+    platformName: string;
+    name: string;
+    handle: string;
+    meta: string;
+    avatar: string;
+    url: string;
   }
 
   let savedProfiles = $state<Array<Profile & { _platformLabel?: string }>>([]);
+  let currentCreator = $state<CreatorInfo | null>(null);
+  let avatarError = $state(false);
 
   let downloading = $derived(isActive());
   let cancelling = $derived(isCancelling());
@@ -76,13 +85,16 @@
 
   let outputDir = $derived(getOutputDir());
   let cookiesFile = $derived(getCookiesFile());
+  let browserCookies = $derived(getBrowserCookies());
+  let hasCookies = $derived(Boolean(cookiesFile.trim() || (browserCookies && browserCookies !== 'none')));
   let missingOutputDir = $derived(!outputDir.trim());
   let needsCookiesWarning = $derived(
-    (contentType === 'stories' || contentType === 'highlights') && !cookiesFile.trim()
+    (contentType === 'stories' || contentType === 'highlights') && !hasCookies
   );
 
-  let currentPlatform = $derived(detectPlatform(getDownloadUrl() ?? ''));
-  let isInstagram = $derived(currentPlatform === 'Instagram');
+  let parsed = $derived(parseProfileUrl(url.trim()));
+  let isSupported = $derived(parsed.platform !== 'unknown');
+  let isInstagram = $derived(parsed.platform === 'instagram');
   let platformMismatch = $derived(
     (contentType === 'stories' || contentType === 'highlights') && !isInstagram
   );
@@ -90,21 +102,19 @@
   let depStatus = $derived(getDependencyStatus());
   let depChecking = $derived(isCheckingDependencies());
 
-  let ringFraction = $derived.by(() => {
-    if (!stageTotal || stageTotal <= 1) return null;
-    const idx = stageIndex ?? 1;
-    const raw = (idx - 0.5) / stageTotal;
-    return Math.min(1, Math.max(0, raw));
+  let isSaved = $derived.by(() => {
+    if (!currentCreator) return false;
+    const clean = currentCreator.url.toLowerCase().trim();
+    return savedProfiles.some((p) => p.url.toLowerCase().trim() === clean);
   });
-
-  let ringDashoffset = $derived(
-    ringFraction === null ? 0 : RING_CIRCUMFERENCE * (1 - ringFraction)
-  );
 
   onMount(async () => {
     await loadSettings();
     await loadSavedProfiles();
     await ensureDependenciesChecked();
+    if (url.trim()) {
+      handleUrlChange(url.trim());
+    }
   });
 
   async function loadSavedProfiles() {
@@ -122,27 +132,190 @@
         })
       );
       savedProfiles = results.flat();
-
-      if (savedProfiles.length > 0 && !selectedProfileUrl && !url.trim()) {
-        selectedProfileUrl = savedProfiles[0]?.url ?? null;
-      }
     } catch (error) {
       console.error('Failed to load profiles:', error);
     }
   }
 
-  function getDownloadUrl(): string | null {
-    if (url.trim()) {
-      return url.trim();
+  function handleUrlChange(val: string) {
+    url = val;
+    avatarError = false;
+    const trimmed = val.trim();
+
+    if (!trimmed) {
+      currentCreator = null;
+      setDraft({ url: '', contentType, selectedProfileUrl: null });
+      return;
     }
-    if (selectedProfileUrl) {
-      return selectedProfileUrl;
+
+    const p = parseProfileUrl(trimmed);
+    if (p.platform === 'unknown' || !p.cleanUrl) {
+      currentCreator = null;
+      return;
     }
-    return null;
+
+    const platformLabels: Record<string, string> = {
+      instagram: 'Instagram',
+      tiktok: 'TikTok',
+      facebook: 'Facebook',
+      x: 'X',
+    };
+    const platName = platformLabels[p.platform] || p.platform;
+    const handle = p.username ? `@${p.username}` : p.cleanUrl;
+    const name = p.username ? p.username : platName;
+
+    // Default fast avatar candidate
+    let fallbackAvatar = '';
+    if (p.platform === 'instagram') {
+      fallbackAvatar = `https://unavatar.io/instagram/${p.username}`;
+    } else if (p.platform === 'tiktok') {
+      fallbackAvatar = `https://unavatar.io/tiktok/${p.username}`;
+    } else if (p.platform === 'x') {
+      fallbackAvatar = `https://unavatar.io/x/${p.username}`;
+    } else {
+      fallbackAvatar = `https://unavatar.io/${p.username}`;
+    }
+
+    currentCreator = {
+      platform: p.platform,
+      platformName: platName,
+      name,
+      handle,
+      meta: `${handle} • ${platName}`,
+      avatar: fallbackAvatar,
+      url: p.cleanUrl,
+    };
+
+    setDraft({ url: p.cleanUrl, contentType, selectedProfileUrl: p.cleanUrl });
+
+    // Asynchronously enrich metadata & real avatar without blocking
+    enrichCreatorInfo(p);
+  }
+
+  async function enrichCreatorInfo(p: ParsedProfile) {
+    if (!p.username) return;
+
+    if (p.platform === 'tiktok') {
+      try {
+        const res = await httpFetch({
+          url: `https://www.tiktok.com/@${p.username}`,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+          },
+          timeout_ms: 4000,
+        });
+        if (res.ok && res.body) {
+          const match = res.body.match(/<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>([\s\S]*?)<\/script>/);
+          if (match) {
+            const json = JSON.parse(match[1]);
+            const userDetail = json?.['__DEFAULT_SCOPE__']?.['webapp.user-detail'];
+            const user = userDetail?.userInfo?.user;
+            const stats = userDetail?.userInfo?.stats;
+            if (user && currentCreator && currentCreator.url === p.cleanUrl) {
+              const avatar = user.avatarLarger || user.avatarMedium || currentCreator.avatar;
+              const nickname = user.nickname || currentCreator.name;
+              const followers = stats?.followerCount ? `${formatNumber(stats.followerCount)} followers` : '';
+              const videos = stats?.videoCount ? `${formatNumber(stats.videoCount)} videos` : '';
+              const parts = [currentCreator.handle, 'TikTok', followers, videos].filter(Boolean);
+              currentCreator.avatar = avatar;
+              currentCreator.name = nickname;
+              currentCreator.meta = parts.join(' • ');
+            }
+          }
+        }
+      } catch {
+        // Fallback remains active
+      }
+    } else if (p.platform === 'instagram') {
+      try {
+        const res = await httpFetch({
+          url: `https://www.instagram.com/api/v1/users/web_profile_info/?username=${encodeURIComponent(p.username)}`,
+          headers: {
+            'X-IG-App-ID': '936619743392459',
+            'Referer': `https://www.instagram.com/${p.username}/`,
+          },
+          timeout_ms: 4000,
+        });
+        if (res.ok && res.body) {
+          const data = JSON.parse(res.body)?.data?.user;
+          if (data && currentCreator && currentCreator.url === p.cleanUrl) {
+            const avatar = data.profile_pic_url_hd || data.profile_pic_url || currentCreator.avatar;
+            const fullName = data.full_name || currentCreator.name;
+            const followers = data.edge_followed_by?.count ? `${formatNumber(data.edge_followed_by.count)} followers` : '';
+            const posts = data.edge_owner_to_timeline_media?.count ? `${formatNumber(data.edge_owner_to_timeline_media.count)} posts` : '';
+            const parts = [currentCreator.handle, 'Instagram', followers, posts].filter(Boolean);
+            currentCreator.avatar = avatar;
+            currentCreator.name = fullName;
+            currentCreator.meta = parts.join(' • ');
+          }
+        }
+      } catch {
+        // Fallback remains active
+      }
+    }
+  }
+
+  function formatNumber(num: number): string {
+    if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1)}M`;
+    if (num >= 1_000) return `${(num / 1_000).toFixed(1)}K`;
+    return String(num);
+  }
+
+  async function handlePaste() {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text && text.trim()) {
+        handleUrlChange(text.trim());
+      }
+    } catch {
+      showToast('error', 'Clipboard permission was not granted');
+    }
+  }
+
+  function clearUrl() {
+    url = '';
+    currentCreator = null;
+    selectedProfileUrl = null;
+    setDraft({ url: '', contentType, selectedProfileUrl: null });
+  }
+
+  async function toggleSaveProfile() {
+    if (!currentCreator) return;
+    const targetUrl = currentCreator.url;
+    const platform = currentCreator.platform;
+
+    try {
+      if (isSaved) {
+        await deleteProfile(platform, targetUrl);
+        showToast('info', `Profile removed: ${currentCreator.name}`);
+      } else {
+        await saveProfile(platform, targetUrl);
+        showToast('success', `Profile saved: ${currentCreator.name}`);
+      }
+      await loadSavedProfiles();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      showToast('error', `Failed to update profile: ${msg}`);
+    }
+  }
+
+  async function handleDeleteSavedProfile(p: Profile) {
+    try {
+      await deleteProfile(p.platform, p.url);
+      showToast('info', `Removed ${p.username || p.url}`);
+      await loadSavedProfiles();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      showToast('error', `Failed to delete profile: ${msg}`);
+    }
+  }
+
+  function loadProfileDirectly(profileUrl: string) {
+    handleUrlChange(profileUrl);
   }
 
   async function startDownload() {
-    const downloadUrl = getDownloadUrl();
+    const downloadUrl = currentCreator?.url || url.trim();
     if (!downloadUrl || missingOutputDir || needsCookiesWarning || platformMismatch) {
       return;
     }
@@ -162,547 +335,763 @@
     clearStoreStatus();
   }
 
-  function selectProfile(profileUrl: string) {
-    selectedProfileUrl = profileUrl;
-    url = '';
-    if ((contentType === 'stories' || contentType === 'highlights') && detectPlatform(profileUrl) !== 'Instagram') {
-      contentType = 'photos';
-    }
-    setDraft({ url: '', contentType, selectedProfileUrl: profileUrl });
-  }
-
-  function handleUrlInput() {
-    if (url.trim()) {
-      selectedProfileUrl = null;
-    }
-    if ((contentType === 'stories' || contentType === 'highlights') && detectPlatform(url) !== 'Instagram') {
-      contentType = 'photos';
-    }
-    setDraft({ url, contentType, selectedProfileUrl });
-  }
-
-  const CONTENT_TYPES: Array<{ key: string; labelKey: string }> = [
-    { key: 'all', labelKey: 'nami.content_all' },
-    { key: 'photos', labelKey: 'nami.content_photos' },
-    { key: 'videos', labelKey: 'nami.content_videos' },
-    { key: 'stories', labelKey: 'nami.content_stories' },
-    { key: 'highlights', labelKey: 'nami.content_highlights' },
+  const CONTENT_TYPES: Array<{ key: string; label: string }> = [
+    { key: 'all', label: 'All Posts' },
+    { key: 'photos', label: 'Photos' },
+    { key: 'videos', label: 'Videos' },
+    { key: 'stories', label: 'Stories' },
+    { key: 'highlights', label: 'Highlights' },
   ];
 </script>
 
-<div class="dl">
+<div class="nami-home-stage">
+  <!-- Centered Mascot Logo with warm light halo -->
+  <div class="nami-mascot-wrapper">
+    <div class="nami-mascot-glow"></div>
+    <div class="nami-mascot-icon">
+      <img src="/icons/nav/nami.svg" alt="Nami" width="84" height="84" class="mascot-img" />
+    </div>
+  </div>
+
+  <!-- Canonical LibreGet HomeUrlBar -->
+  <div class="url-bar">
+    <input
+      id="nami-url-input"
+      class="url-input"
+      type="text"
+      bind:value={url}
+      oninput={(e) => handleUrlChange((e.target as HTMLInputElement).value)}
+      onkeydown={(e) => {
+        if (e.key === 'Enter') startDownload();
+      }}
+      placeholder="Paste creator profile or media URL..."
+      autocomplete="off"
+      spellcheck="false"
+      disabled={downloading}
+    />
+
+    {#if url.trim()}
+      <button
+        type="button"
+        class="clear-btn"
+        onclick={clearUrl}
+        title="Clear URL"
+        disabled={downloading}
+        aria-label="Clear URL"
+      >
+        <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
+          <path d="M8 1.4a6.6 6.6 0 1 0 0 13.2A6.6 6.6 0 0 0 8 1.4zm2.35 3.5a.75.75 0 0 1 1.06 1.06L9.06 8l2.35 2.35a.75.75 0 1 1-1.06 1.06L8 9.06 5.65 11.4a.75.75 0 1 1-1.06-1.06L6.94 8 4.6 5.65A.75.75 0 0 1 5.65 4.6L8 6.94l2.35-2.04z" />
+        </svg>
+      </button>
+
+      <button
+        type="button"
+        class="go-btn"
+        onclick={startDownload}
+        title="Download"
+        disabled={downloading || missingOutputDir || needsCookiesWarning || platformMismatch}
+        aria-label="Start download"
+      >
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 5v14M6 13l6 6 6-6" />
+        </svg>
+      </button>
+    {:else}
+      <button
+        type="button"
+        class="paste-btn"
+        onclick={handlePaste}
+        disabled={downloading}
+      >
+        <span>Paste</span>
+        <kbd>Ctrl+V</kbd>
+      </button>
+    {/if}
+  </div>
+
+  <!-- Detected Platform Feedback -->
+  {#if currentCreator}
+    <div class="feedback feedback-enter" data-supported="true">
+      <span class="feedback-text">{currentCreator.platformName} detected</span>
+    </div>
+  {/if}
+
+  <!-- Alerts / Notices -->
   {#if depStatus && !depStatus.ok}
-    <div class="dl-alert error" role="alert">
+    <div class="notice notice-danger" role="alert">
       <span>{namiStatusMessage(depStatus.message, tr)}</span>
     </div>
   {/if}
 
-  <div class="dl-live" aria-live="polite" aria-atomic="true">
-    {#if status}
-      <div
-        class="dl-alert"
-        class:success={statusType === 'success'}
-        class:error={statusType === 'error'}
-        class:info={statusType === 'info'}
-        role={statusType === 'error' ? 'alert' : 'status'}
-      >
-        <div class="dl-alert-body">
-          <span>{namiStatusMessage(status, tr)}</span>
-          {#if statusDetail}
-            <details class="dl-alert-details">
-              <summary>{$t('nami.view_log')}</summary>
-              <pre>{statusDetail}</pre>
-            </details>
-          {/if}
-        </div>
-        <button class="dl-alert-close" onclick={clearStatus} aria-label={$t('common.dismiss')}>×</button>
+  {#if status}
+    <div
+      class="notice"
+      class:notice-success={statusType === 'success'}
+      class:notice-danger={statusType === 'error'}
+      class:notice-info={statusType === 'info'}
+      role={statusType === 'error' ? 'alert' : 'status'}
+    >
+      <div class="notice-body">
+        <span class="notice-title">{namiStatusMessage(status, tr)}</span>
+        {#if statusDetail}
+          <details style="margin-top: 4px;">
+            <summary style="cursor: pointer; font-size: 11px;">View Log</summary>
+            <pre style="margin-top: 4px; font-size: 11px; max-height: 120px; overflow-y: auto;">{statusDetail}</pre>
+          </details>
+        {/if}
       </div>
-    {/if}
-  </div>
-
-  {#if !url.trim() && savedProfiles.length > 0}
-    <div class="dl-quicklist" role="group" aria-label={$t('nami.saved_profiles_aria')}>
-      {#each savedProfiles as profile (profile.url)}
-        <button
-          type="button"
-          class="dl-chip"
-          class:on={selectedProfileUrl === profile.url}
-          onclick={() => selectProfile(profile.url)}
-          disabled={downloading}
-          aria-pressed={selectedProfileUrl === profile.url}
-        >
-          <span>{profile.username || profile.url}</span>
-          {#if profile._platformLabel}
-            <span class="dl-chip-sub">{profile._platformLabel}</span>
-          {/if}
-        </button>
-      {/each}
+      <button type="button" class="btn btn-sm btn-ghost" onclick={clearStatus}>×</button>
     </div>
-  {:else if !url.trim() && savedProfiles.length === 0}
-    <p class="dl-hint">
-      {$t('nami.no_saved_profiles')}
-      <button type="button" class="dl-link" onclick={() => onSwitchToProfiles?.()}
-        >{$t('nami.add_one')}</button
-      >
-    </p>
   {/if}
 
-  <div class="dl-group">
-    <div class="dl-row">
-      <svg class="dl-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" aria-hidden="true">
-        <path d="M5.5 10.5c-.8.8-2.2.8-3 0-.8-.8-.8-2.2 0-3L4 6" />
-        <path d="M10.5 5.5c.8-.8 2.2-.8 3 0 .8.8.8 2.2 0 3L12 10" />
-        <path d="M6.3 9.7 9.7 6.3" />
-      </svg>
-      <input
-        id="profile-url"
-        aria-label={$t('nami.profile_url_aria')}
-        type="text"
-        bind:value={url}
-        oninput={handleUrlInput}
-        placeholder="https://instagram.com/username"
-        disabled={downloading}
-        autocomplete="off"
-        spellcheck="false"
-      />
-    </div>
-  </div>
-
-  <div class="dl-segmented" role="group" aria-label={$t('nami.content_type_aria')}>
-    {#each CONTENT_TYPES as type (type.key)}
-      <button
-        type="button"
-        class:on={contentType === type.key}
-        onclick={() => {
-          contentType = type.key;
-          setDraft({ contentType: type.key });
-        }}
-        disabled={downloading || ((type.key === 'stories' || type.key === 'highlights') && !isInstagram)}
-        title={(type.key === 'stories' || type.key === 'highlights') && !isInstagram
-          ? $t('nami.instagram_only')
-          : ''}
-        aria-pressed={contentType === type.key}
-      >
-        {$t(type.labelKey)}
-      </button>
-    {/each}
-  </div>
-
   {#if missingOutputDir}
-    <p class="dl-warning" role="alert">
-      {$t('nami.missing_output_dir_prefix')}
-      <button type="button" class="dl-link" onclick={() => onSwitchToSettings?.()}>{$t('nav.settings')}</button>
-      {$t('nami.missing_output_dir_suffix')}
-    </p>
+    <div class="notice notice-warning" role="alert">
+      <span>Output directory is not set.</span>
+      <button type="button" class="btn btn-sm btn-secondary" onclick={() => onSwitchToSettings?.()}>
+        Configure Settings
+      </button>
+    </div>
   {/if}
 
   {#if needsCookiesWarning}
-    <p class="dl-warning" role="alert">
-      {$t('nami.cookies_required_prefix')}
-      <button type="button" class="dl-link" onclick={() => onSwitchToSettings?.()}>{$t('nav.settings')}</button>.
-    </p>
-  {/if}
-
-  {#if platformMismatch}
-    <p class="dl-warning" role="alert">{$t('nami.stories_instagram_only')}</p>
-  {/if}
-
-  <div class="dl-actions">
-    {#if downloading}
-      <button class="dl-btn stop" onclick={handleStop} disabled={cancelling}>
-        {cancelling ? $t('nami.cancelling') : $t('nami.stop_download')}
+    <div class="notice notice-warning" role="alert">
+      <span>Stories & Highlights require active cookies. Please connect a browser bridge in Settings.</span>
+      <button type="button" class="btn btn-sm btn-secondary" onclick={() => onSwitchToSettings?.()}>
+        Settings
       </button>
-    {:else}
-      <button
-        class="dl-btn primary"
-        onclick={startDownload}
-        disabled={!getDownloadUrl() || missingOutputDir || needsCookiesWarning || platformMismatch || (depStatus !== null && !depStatus.ok)}
-      >
-        {$t('nami.start_download')}
-      </button>
-    {/if}
-  </div>
-
-  {#if downloading}
-    <div class="dl-progress" role="status" aria-live="polite" aria-atomic="true">
-      <svg class="dl-ring" class:indeterminate={ringFraction === null} viewBox="0 0 104 104" width="104" height="104" aria-hidden="true">
-        <circle class="dl-ring-track" cx="52" cy="52" r={RING_RADIUS} />
-        {#if ringFraction === null}
-          <circle class="dl-ring-progress" cx="52" cy="52" r={RING_RADIUS} />
-        {:else}
-          <circle
-            class="dl-ring-progress"
-            cx="52"
-            cy="52"
-            r={RING_RADIUS}
-            stroke-dasharray={RING_CIRCUMFERENCE}
-            stroke-dashoffset={ringDashoffset}
-          />
-        {/if}
-        <text x="52" y="49" text-anchor="middle" class="dl-ring-count">{filesDownloaded}</text>
-        <text x="52" y="66" text-anchor="middle" class="dl-ring-label">{$t('nami.files_label')}</text>
-      </svg>
-      <p class="dl-progress-stage">
-        {#if stageTotal && stageTotal > 1}
-          {$t('nami.stage_of', {
-            index: stageIndex ?? 1,
-            total: stageTotal,
-            stage: namiStageLabel(stage, tr)
-          })}
-        {:else}
-          {stage
-            ? $t('nami.downloading_stage', { stage: namiStageLabel(stage, tr) })
-            : $t('nami.downloading')}
-        {/if}
-      </p>
-      {#if lastMessage}
-        <p class="dl-progress-msg" title={lastMessage}>{lastMessage}</p>
-      {/if}
     </div>
+  {/if}
+
+  <!-- Creator Inspector Panel (When URL is entered) -->
+  {#if currentCreator}
+    <section class="home-panel" aria-label="Creator preview">
+      <div class="home-panel-body">
+        <!-- MediaPreview Row -->
+        <div class="preview-container">
+          <div class="preview-thumbnail-wrapper">
+            {#if !avatarError && currentCreator.avatar}
+              <img
+                class="preview-thumbnail"
+                src={currentCreator.avatar}
+                alt={currentCreator.name}
+                onerror={() => (avatarError = true)}
+              />
+            {:else}
+              <div class="preview-initials-badge" data-platform={currentCreator.platform}>
+                <span>{currentCreator.name.slice(0, 2).toUpperCase()}</span>
+              </div>
+            {/if}
+          </div>
+
+          <div class="preview-info">
+            <p class="preview-title">{currentCreator.name}</p>
+            <p class="preview-author">{currentCreator.meta}</p>
+          </div>
+
+          <!-- Save / Saved Toggle Button -->
+          <button
+            type="button"
+            class="btn btn-sm"
+            class:btn-primary={isSaved}
+            class:btn-secondary={!isSaved}
+            onclick={toggleSaveProfile}
+            title={isSaved ? 'Remove from Saved' : 'Save Profile'}
+          >
+            <svg viewBox="0 0 24 24" width="13" height="13" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2">
+              <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
+            </svg>
+            <span>{isSaved ? 'Saved' : 'Save'}</span>
+          </button>
+        </div>
+
+        <!-- Scope / Content Type Segmented Selector -->
+        <div class="category-block">
+          <span class="category-heading">CATEGORY</span>
+          <div class="segmented segmented-lg" role="group">
+            {#each CONTENT_TYPES as type (type.key)}
+              <button
+                type="button"
+                class="segmented-btn"
+                class:active={contentType === type.key}
+                disabled={downloading || ((type.key === 'stories' || type.key === 'highlights') && !isInstagram)}
+                onclick={() => {
+                  contentType = type.key;
+                  setDraft({ contentType: type.key });
+                }}
+              >
+                {type.label}
+              </button>
+            {/each}
+          </div>
+        </div>
+
+        <!-- Full-Width Download Primary Button -->
+        <button
+          type="button"
+          class="download-primary-btn"
+          onclick={startDownload}
+          disabled={downloading || missingOutputDir || needsCookiesWarning || platformMismatch}
+        >
+          {downloading ? 'Archiving...' : 'Download'}
+        </button>
+      </div>
+    </section>
+  {/if}
+
+  <!-- Active Download Progress Card -->
+  {#if downloading}
+    <div class="home-panel live-download-card">
+      <div class="item-header">
+        <div class="item-header-left">
+          <span class="item-status">Archiving</span>
+          {#if stage}
+            <span class="tag tag-accent">{stage}</span>
+          {/if}
+          <span class="item-name">{currentCreator?.name || 'Creator Archive'}</span>
+        </div>
+        <button
+          type="button"
+          class="btn btn-sm btn-destructive"
+          onclick={handleStop}
+          disabled={cancelling}
+        >
+          {cancelling ? 'Cancelling...' : 'Cancel'}
+        </button>
+      </div>
+
+      <div class="progress-row">
+        <div class="progress-track">
+          <div
+            class="progress-fill"
+            style="width: {stageTotal ? Math.round(((stageIndex ?? 1) / stageTotal) * 100) : 40}%;"
+          ></div>
+        </div>
+        <span class="progress-pct">
+          {stageTotal ? Math.round(((stageIndex ?? 1) / stageTotal) * 100) : 40}%
+        </span>
+      </div>
+
+      <div class="item-meta">
+        <span class="meta-text">{filesDownloaded} files downloaded</span>
+        {#if lastMessage}
+          <span class="meta-sep">•</span>
+          <span class="meta-text">{lastMessage}</span>
+        {/if}
+      </div>
+    </div>
+  {/if}
+
+  <!-- Clean Saved Profiles Section (When URL bar is empty) -->
+  {#if !url.trim()}
+    <section class="saved-profiles-section">
+      <div class="section-header">
+        <span class="section-header-title">Saved Profiles</span>
+        <span class="badge badge-neutral">{savedProfiles.length}</span>
+      </div>
+
+      {#if savedProfiles.length > 0}
+        <div class="surface-card saved-profiles-card">
+          {#each savedProfiles as profile (profile.url)}
+            <div
+              class="list-row interactive"
+              role="button"
+              tabindex="0"
+              onclick={() => loadProfileDirectly(profile.url)}
+              onkeydown={(e) => {
+                if (e.key === 'Enter') loadProfileDirectly(profile.url);
+              }}
+            >
+              <div class="preview-initials-badge" data-platform={profile.platform}>
+                <span>{(profile.username || profile.platform).slice(0, 2).toUpperCase()}</span>
+              </div>
+              <span class="list-row-content">
+                <span class="list-row-title">{profile.username || profile.url}</span>
+                <span class="list-row-sub">{profile.url} • {profile._platformLabel || profile.platform}</span>
+              </span>
+              <span class="list-row-trailing">
+                <button
+                  type="button"
+                  class="btn btn-sm btn-secondary"
+                  onclick={(e) => {
+                    e.stopPropagation();
+                    loadProfileDirectly(profile.url);
+                  }}
+                >
+                  Download
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-ghost"
+                  title="Remove Profile"
+                  onclick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteSavedProfile(profile);
+                  }}
+                >
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  </svg>
+                </button>
+              </span>
+            </div>
+          {/each}
+        </div>
+      {:else}
+        <div class="empty-state">
+          <p class="empty-state-hint">No saved profiles yet. Enter a URL above and click Save.</p>
+        </div>
+      {/if}
+    </section>
   {/if}
 </div>
 
 <style>
-  .dl {
+  .nami-home-stage {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    align-items: center;
+    gap: var(--space-4);
+    width: 100%;
+    max-width: 620px;
+    margin: 0 auto;
   }
 
-  .dl-live {
-    min-height: 0;
-  }
-
-  .dl-alert {
-    padding: 10px 14px;
-    border-radius: var(--oo-radius, 9px);
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 12px;
-    font-size: 12.5px;
-    line-height: 1.45;
-  }
-
-  .dl-alert-body {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .dl-alert.success {
-    background: var(--success);
-    color: var(--on-success);
-  }
-
-  .dl-alert.error {
-    background: var(--error);
-    color: var(--on-error);
-  }
-
-  .dl-alert.info {
-    background: color-mix(in srgb, var(--oo-accent) 12%, transparent);
-    color: var(--oo-accent);
-  }
-
-  .dl-alert-details {
-    margin-top: 6px;
-    font-size: 11.5px;
-    cursor: pointer;
-  }
-
-  .dl-alert-details pre {
-    margin-top: 4px;
-    padding: 6px 8px;
-    border-radius: 4px;
-    background: rgba(0, 0, 0, 0.2);
-    font-family: var(--font-mono, monospace);
-    font-size: 11px;
-    white-space: pre-wrap;
-    max-height: 140px;
-    overflow-y: auto;
-  }
-
-  .dl-alert-close {
-    font-size: 18px;
-    line-height: 1;
-    opacity: 0.8;
-    background: transparent;
-    border: none;
-    color: inherit;
-    cursor: pointer;
-    padding: 2px 6px;
-    min-width: 28px;
-    min-height: 28px;
+  /* Mascot Hero */
+  .nami-mascot-wrapper {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 4px;
+    padding: var(--space-3) 0 var(--space-2);
   }
 
-  .dl-alert-close:hover {
-    opacity: 1;
-    background: rgba(0, 0, 0, 0.1);
+  .nami-mascot-glow {
+    position: absolute;
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    background: radial-gradient(circle, color-mix(in srgb, var(--accent) 22%, transparent) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
   }
 
-  .dl-quicklist {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
+  .nami-mascot-icon {
+    position: relative;
+    z-index: 1;
+    filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.3));
   }
 
-  .dl-chip {
+  /* Canonical LibreGet HomeUrlBar */
+  .url-bar {
+    position: relative;
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 5px 11px;
-    border-radius: 999px;
-    font-size: 11.5px;
-    background: var(--oo-group-bg);
-    border: 1px solid var(--oo-border);
-    color: var(--oo-text);
-    cursor: pointer;
-    transition: background 150ms ease, border-color 150ms ease;
+    gap: 8px;
+    width: 100%;
+    height: 58px;
+    padding: 0 10px 0 18px;
+    border-radius: 20px;
+    background: var(--surface);
+    box-shadow:
+      inset 0 0 0 var(--hairline) var(--content-border),
+      0 12px 32px rgba(var(--shadow-ink, 0, 0, 0), var(--elev-alpha-1, 0.2)),
+      0 2px 6px rgba(var(--shadow-ink, 0, 0, 0), calc(var(--elev-alpha-1, 0.2) * 0.6));
+    transition: box-shadow var(--duration-base) var(--ease-out);
   }
 
-  .dl-chip:disabled {
+  .url-bar:focus-within {
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, var(--accent) 70%, transparent),
+      0 0 0 5px var(--accent-soft),
+      0 12px 32px rgba(var(--shadow-ink, 0, 0, 0), var(--elev-alpha-1, 0.2));
+  }
+
+  .url-input {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    border: none;
+    background: transparent;
+    color: var(--text);
+    font: inherit;
+    font-size: 15px;
+    letter-spacing: -0.01em;
+    outline: none;
+  }
+
+  .url-input::placeholder {
+    color: var(--text-dim);
+  }
+
+  .clear-btn {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-faint);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .clear-btn:hover {
+    color: var(--text-muted);
+  }
+
+  .go-btn {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    border: none;
+    border-radius: 50%;
+    background: var(--cta);
+    color: var(--on-cta);
+    cursor: pointer;
+    box-shadow: 0 4px 14px var(--accent-glow, rgba(255, 159, 10, 0.4));
+    transition: background var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out);
+  }
+
+  .go-btn:hover:not(:disabled) {
+    background: var(--cta-hover);
+  }
+
+  .go-btn:active:not(:disabled) {
+    background: var(--cta-press);
+    transform: scale(0.95);
+  }
+
+  .go-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
 
-  .dl-chip.on {
-    background: var(--oo-accent);
-    color: var(--on-accent);
-    border-color: var(--oo-accent);
-    font-weight: 500;
-  }
-
-  .dl-chip-sub {
-    font-size: 10px;
-    opacity: 0.75;
-  }
-
-  .dl-hint {
-    font-size: 12px;
-    color: var(--oo-text-secondary);
-    margin: 0;
-  }
-
-  .dl-link {
-    color: var(--oo-accent);
-    text-decoration: underline;
-    font-size: inherit;
-    background: transparent;
+  .paste-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 36px;
+    padding: 0 8px 0 14px;
+    flex-shrink: 0;
     border: none;
-    padding: 0;
+    border-radius: 999px;
+    background: var(--fill-1);
+    color: var(--text);
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: 600;
     cursor: pointer;
+    transition: background var(--duration-fast) var(--ease-out);
   }
 
-  .dl-link:hover {
-    opacity: 0.8;
+  .paste-btn:hover {
+    background: var(--fill-2);
   }
 
-  .dl-group {
-    background: var(--oo-group-bg);
-    border-radius: var(--oo-radius, 9px);
-    border: 1px solid var(--oo-border);
-    overflow: hidden;
+  .paste-btn kbd {
+    font: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text-dim);
+    box-shadow: inset 0 0 0 var(--hairline) var(--content-border);
   }
 
-  .dl-row {
+  /* Feedback */
+  .feedback {
     display: flex;
     align-items: center;
-    gap: 9px;
-    padding: 10px 12px;
-  }
-
-  .dl-icon {
-    width: 15px;
-    height: 15px;
-    color: var(--oo-text-secondary);
-    flex-shrink: 0;
-  }
-
-  .dl-row input {
-    flex: 1;
-    border: 0;
-    background: transparent;
-    color: var(--oo-text);
-    font-size: 13px;
-    min-width: 0;
-  }
-
-  .dl-row input:focus {
-    outline: none;
-  }
-
-  .dl-row input:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
-  .dl-segmented {
-    display: flex;
-    background: color-mix(in srgb, var(--oo-text) 6%, transparent);
-    border-radius: var(--oo-radius, 9px);
-    padding: 2px;
-    gap: 1px;
-  }
-
-  .dl-segmented button {
-    flex: 1;
-    min-height: 38px;
-    padding: 7px 8px;
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--oo-text-secondary);
-    border-radius: 7px;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    transition: background 150ms ease, color 150ms ease;
-  }
-
-  .dl-segmented button.on {
-    background: var(--oo-group-bg);
-    color: var(--oo-text);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
-  }
-
-  .dl-segmented button:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-
-  .dl-segmented button:disabled.on {
-    background: transparent;
-    box-shadow: none;
-  }
-
-  .dl-warning {
-    font-size: 12px;
-    color: var(--error);
-    margin: -4px 0 0;
-  }
-
-  .dl-actions {
-    display: flex;
     justify-content: center;
+    gap: 6px;
+    min-height: 20px;
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+    font-weight: 500;
   }
 
-  .dl-btn {
-    min-height: 42px;
-    padding: 9px 26px;
-    border-radius: var(--oo-radius, 9px);
-    font-weight: 600;
-    font-size: 13px;
-    background: var(--oo-accent);
-    color: var(--on-accent);
-    border: none;
-    cursor: pointer;
-    transition: filter 150ms ease, opacity 150ms ease;
+  .feedback-enter {
+    animation: feedbackEnter var(--duration-base) var(--ease-out);
   }
 
-  .dl-btn:hover:not(:disabled) {
-    filter: brightness(1.06);
+  @keyframes feedbackEnter {
+    from { opacity: 0; transform: translateY(-3px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
-  .dl-btn:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
+  /* Creator Inspector Panel */
+  .home-panel {
+    width: 100%;
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    box-shadow: inset 0 0 0 var(--hairline) var(--content-border);
+    padding: var(--space-4);
+    animation: panel-in var(--duration-slow) var(--ease-spring);
+    box-sizing: border-box;
   }
 
-  .dl-btn.stop {
-    background: var(--error);
-    color: var(--on-error);
-  }
-
-  .dl-progress {
+  .home-panel-body {
     display: flex;
     flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  @keyframes panel-in {
+    from { opacity: 0; transform: translateY(-6px) scale(0.99); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .preview-container {
+    display: flex;
     align-items: center;
-    padding-top: 2px;
+    gap: var(--space-3);
+    width: 100%;
   }
 
-  .dl-ring {
-    color: var(--oo-accent);
+  .preview-thumbnail-wrapper {
+    position: relative;
+    flex-shrink: 0;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    width: 52px;
+    height: 52px;
+    box-shadow: inset 0 0 0 var(--hairline) var(--content-border);
+    background: var(--fill-2);
   }
 
-  .dl-ring-track {
-    fill: none;
-    stroke: color-mix(in srgb, var(--oo-text) 8%, transparent);
-    stroke-width: 8;
+  .preview-thumbnail {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
   }
 
-  .dl-ring-progress {
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 8;
-    stroke-linecap: round;
-    transform: rotate(-90deg);
-    transform-origin: 52px 52px;
-    transition: stroke-dashoffset 0.35s ease;
-  }
-
-  .dl-ring.indeterminate .dl-ring-progress {
-    stroke-dasharray: 70 207;
-    transition: none;
-    animation: dl-ring-spin 1.1s linear infinite;
-  }
-
-  @keyframes dl-ring-spin {
-    from {
-      transform: rotate(-90deg);
-    }
-    to {
-      transform: rotate(270deg);
-    }
-  }
-
-  .dl-ring-count {
-    font-size: 17px;
+  .preview-initials-badge {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
     font-weight: 700;
-    fill: var(--oo-text);
+    color: var(--on-accent);
+    background: var(--accent);
   }
 
-  .dl-ring-label {
-    font-size: 9.5px;
-    fill: var(--oo-text-secondary);
+  .preview-initials-badge[data-platform="instagram"] {
+    background: linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045);
+    color: #ffffff;
   }
 
-  .dl-progress-stage {
-    font-size: 12.5px;
+  .preview-initials-badge[data-platform="tiktok"] {
+    background: #010101;
+    color: #00f2fe;
+  }
+
+  .preview-initials-badge[data-platform="x"] {
+    background: #000000;
+    color: #ffffff;
+  }
+
+  .preview-initials-badge[data-platform="facebook"] {
+    background: #1877f2;
+    color: #ffffff;
+  }
+
+  .preview-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .preview-title {
+    font-size: var(--text-md);
     font-weight: 600;
-    color: var(--oo-text);
-    margin: 10px 0 2px;
-    text-align: center;
-  }
-
-  .dl-progress-msg {
-    font-size: 11.5px;
-    color: var(--oo-text-secondary);
+    color: var(--text);
     margin: 0;
-    max-width: 280px;
-    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .preview-author {
+    font-size: var(--text-sm);
+    color: var(--text-dim);
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .category-block {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .category-heading {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--text-dim);
+  }
+
+  .segmented-lg {
+    width: 100%;
+    display: flex;
+  }
+
+  .segmented-lg .segmented-btn {
+    flex: 1;
+    height: 28px;
     text-align: center;
   }
 
-  @media (max-width: 440px) {
-    .dl-segmented {
-      flex-wrap: wrap;
-    }
-    .dl-segmented button {
-      flex: 1 1 28%;
-    }
+  /* Full-width orange download button */
+  .download-primary-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    background: var(--cta);
+    color: var(--on-cta);
+    font-size: var(--text-md);
+    font-weight: 600;
+    letter-spacing: var(--track-snug);
+    height: 42px;
+    padding: 0 var(--space-4);
+    border-radius: var(--radius-md);
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    box-shadow: inset 0 0 0 var(--hairline) color-mix(in srgb, var(--on-cta) 12%, transparent);
+    transition: background var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out);
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    .dl-ring.indeterminate .dl-ring-progress {
-      animation: none;
-    }
-    .dl-ring-progress {
-      transition: none;
-    }
+  .download-primary-btn:hover:not(:disabled) {
+    background: var(--cta-hover);
+  }
+
+  .download-primary-btn:active:not(:disabled) {
+    background: var(--cta-press);
+    transform: scale(0.99);
+  }
+
+  .download-primary-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* Active download item */
+  .live-download-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .item-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+
+  .item-header-left {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
+    flex: 1;
+  }
+
+  .item-status {
+    display: inline-flex;
+    align-items: center;
+    height: 20px;
+    padding: 0 8px;
+    border-radius: var(--radius-full);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    background: var(--accent-soft);
+    color: var(--accent-hi);
+  }
+
+  .item-name {
+    font-size: var(--text-base);
+    font-weight: 600;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .progress-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    width: 100%;
+  }
+
+  .progress-track {
+    flex: 1;
+    height: 6px;
+    border-radius: var(--radius-full);
+    background: var(--fill-2);
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    border-radius: var(--radius-full);
+    background: var(--accent);
+    transition: width 0.3s ease-out;
+  }
+
+  .progress-pct {
+    font-size: var(--text-sm);
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+    min-width: 36px;
+    text-align: right;
+  }
+
+  .item-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--text-sm);
+    color: var(--text-dim);
+  }
+
+  .meta-sep {
+    color: var(--text-faint);
+  }
+
+  /* Saved Profiles Section */
+  .saved-profiles-section {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+  }
+
+  .saved-profiles-card {
+    overflow: hidden;
+  }
+
+  .saved-profiles-card .preview-initials-badge {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-sm);
+    font-size: 11px;
+    flex-shrink: 0;
   }
 </style>
