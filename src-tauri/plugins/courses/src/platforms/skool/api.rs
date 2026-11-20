@@ -313,9 +313,18 @@ pub async fn get_group_courses(
             .unwrap_or(&course_slug)
             .to_string();
 
-        let lessons = get_course_lessons(session, group_slug, &course_slug)
-            .await
-            .unwrap_or_default();
+        let lessons = match get_course_lessons(session, group_slug, &course_slug).await {
+            Ok(l) => l,
+            Err(e) => {
+                tracing::warn!(
+                    "[skool] Failed to fetch lessons for course '{}' in group '{}': {}",
+                    course_slug,
+                    group_slug,
+                    e
+                );
+                Vec::new()
+            }
+        };
 
         modules.push(SkoolModule {
             id: if course_id.is_empty() {
@@ -333,7 +342,10 @@ pub async fn get_group_courses(
 }
 
 pub fn parse_next_redirect_md(body: &serde_json::Value) -> Option<String> {
-    let redirect = body.get("__N_REDIRECT").and_then(|v| v.as_str())?;
+    let redirect = body
+        .pointer("/pageProps/__N_REDIRECT")
+        .or_else(|| body.get("__N_REDIRECT"))
+        .and_then(|v| v.as_str())?;
     let target = if redirect.starts_with("http") {
         redirect.to_string()
     } else {
@@ -347,13 +359,14 @@ pub fn parse_next_redirect_md(body: &serde_json::Value) -> Option<String> {
 }
 
 pub fn parse_lesson_detail(child: &serde_json::Value) -> SkoolLessonDetail {
-    let lesson_id = child
+    let effective = child.get("course").unwrap_or(child);
+    let lesson_id = effective
         .get("id")
         .and_then(|v| v.as_str())
         .unwrap_or("")
         .to_string();
 
-    let metadata = child.get("metadata").unwrap_or(child);
+    let metadata = effective.get("metadata").unwrap_or(effective);
 
     let name = metadata
         .get("title")
@@ -367,6 +380,7 @@ pub fn parse_lesson_detail(child: &serde_json::Value) -> SkoolLessonDetail {
         .or_else(|| metadata.get("content"))
         .or_else(|| metadata.get("body"))
         .or_else(|| metadata.get("text"))
+        .or_else(|| metadata.get("desc"))
         .and_then(|v| {
             if v.is_string() {
                 v.as_str().map(String::from)
@@ -376,17 +390,41 @@ pub fn parse_lesson_detail(child: &serde_json::Value) -> SkoolLessonDetail {
         })
         .filter(|s| !s.trim().is_empty());
 
-    let video_url = metadata
+    let mut video_url = metadata
         .get("videoLink")
         .or_else(|| metadata.get("video_url"))
         .or_else(|| metadata.get("video"))
         .and_then(|v| v.as_str())
         .map(String::from);
 
+    if video_url.is_none() {
+        let playback_id = metadata
+            .get("videoId")
+            .or_else(|| metadata.get("playbackId"))
+            .or_else(|| effective.pointer("/video/playbackId"))
+            .and_then(|v| v.as_str());
+        let playback_token = metadata
+            .get("playbackToken")
+            .or_else(|| effective.pointer("/video/playbackToken"))
+            .and_then(|v| v.as_str());
+
+        if let Some(pid) = playback_id {
+            if let Some(token) = playback_token {
+                video_url = Some(format!(
+                    "https://stream.mux.com/{}.m3u8?token={}",
+                    pid, token
+                ));
+            } else {
+                video_url = Some(format!("https://stream.mux.com/{}.m3u8", pid));
+            }
+        }
+    }
+
     let mut files = Vec::new();
 
     let raw_attachments = metadata
         .get("attachments")
+        .or_else(|| metadata.get("resources"))
         .or_else(|| metadata.get("files"))
         .and_then(|v| v.as_array());
 
@@ -423,9 +461,10 @@ pub fn parse_lesson_detail(child: &serde_json::Value) -> SkoolLessonDetail {
 }
 
 fn parse_lesson_node(child: &serde_json::Value, order: i64) -> SkoolLesson {
-    let metadata = child.get("metadata").unwrap_or(child);
+    let effective = child.get("course").unwrap_or(child);
+    let metadata = effective.get("metadata").unwrap_or(effective);
 
-    let lesson_id = child
+    let lesson_id = effective
         .get("id")
         .and_then(|v| v.as_str())
         .unwrap_or("")
@@ -666,6 +705,16 @@ mod tests {
             }
         });
         assert_eq!(parse_next_redirect_md(&normal_json), None);
+
+        let page_props_redirect_json = serde_json::json!({
+            "pageProps": {
+                "__N_REDIRECT": "/my-group/classroom/intro-course?md=module_pageprops123",
+                "__N_REDIRECT_STATUS": 307
+            },
+            "__N_SSP": true
+        });
+        let md = parse_next_redirect_md(&page_props_redirect_json);
+        assert_eq!(md.as_deref(), Some("module_pageprops123"));
     }
 
     #[test]
@@ -743,5 +792,42 @@ mod tests {
         assert_eq!(lessons.len(), 1);
         assert_eq!(lessons[0].id, "les_nested_1");
         assert_eq!(lessons[0].name, "Nested Lesson 1");
+    }
+
+    #[test]
+    fn test_parse_course_lessons_wrapped_course_and_mux_video() {
+        let payload = serde_json::json!({
+            "pageProps": {
+                "course": {
+                    "children": [
+                        {
+                            "course": {
+                                "id": "les_wrapped_1",
+                                "unitType": "module",
+                                "metadata": {
+                                    "title": "Wrapped Mux Lesson",
+                                    "desc": "Lesson description text",
+                                    "videoId": "mux_play_12345",
+                                    "playbackToken": "jwt_token_abc"
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        });
+
+        let lessons = parse_course_lessons(&payload);
+        assert_eq!(lessons.len(), 1);
+        assert_eq!(lessons[0].id, "les_wrapped_1");
+        assert_eq!(lessons[0].name, "Wrapped Mux Lesson");
+        assert_eq!(
+            lessons[0].detail.video_url.as_deref(),
+            Some("https://stream.mux.com/mux_play_12345.m3u8?token=jwt_token_abc")
+        );
+        assert_eq!(
+            lessons[0].detail.description.as_deref(),
+            Some("Lesson description text")
+        );
     }
 }
