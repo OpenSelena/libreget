@@ -3162,7 +3162,7 @@ pub async fn download_video(
                             h, h, h
                         )
                     } else {
-                        format!("b[height<={}]/bv*[height<={}]/b", h, h)
+                        format!("b[height<={}]/b", h)
                     }
                 }
             };
@@ -3187,10 +3187,10 @@ pub async fn download_video(
                         _ => "bv*+ba[ext=m4a]/bv*+ba/b".to_string(),
                     }
                 } else {
-                    tracing::warn!("[yt-dlp] ffmpeg not available, using fallback format selector");
+                    tracing::warn!("[yt-dlp] ffmpeg not available, using combined-stream fallback (best with audio)");
                     match quality_height {
-                        Some(h) if h > 0 => format!("b[height<={}]/bv*[height<={}]/b", h, h),
-                        _ => "b/bv*".to_string(),
+                        Some(h) if h > 0 => format!("b[height<={}]/b", h),
+                        _ => "b".to_string(),
                     }
                 }
             }
