@@ -3095,6 +3095,66 @@ pub async fn write_netscape_cookie_file(
     Ok(())
 }
 
+pub(crate) fn build_format_selector(
+    format_id: Option<&str>,
+    quality_height: Option<u32>,
+    mode: &str,
+    ffmpeg_available: bool,
+) -> String {
+    if let Some(fid) = format_id {
+        match mode {
+            "audio" => format!("{fid}/ba/b"),
+            "mute" => {
+                if let Some(h) = quality_height.filter(|h| *h > 0) {
+                    format!("{fid}/bv*[height<={h}]/bv*/b")
+                } else {
+                    format!("{fid}/bv*/b")
+                }
+            }
+            _ => {
+                if ffmpeg_available {
+                    if let Some(h) = quality_height.filter(|h| *h > 0) {
+                        let fallback = format!(
+                            "bv*[height<={h}]+ba[ext=m4a]/bv*[height<={h}]+ba/b[height<={h}]/b"
+                        );
+                        format!("{fid}+ba[ext=m4a]/{fid}+ba/{fid}/{fallback}")
+                    } else {
+                        format!("{fid}+ba[ext=m4a]/{fid}+ba/{fid}")
+                    }
+                } else if let Some(h) = quality_height.filter(|h| *h > 0) {
+                    format!("{fid}/b[height<={h}]/b")
+                } else {
+                    format!("{fid}/b")
+                }
+            }
+        }
+    } else {
+        match mode {
+            "audio" => "ba/b".to_string(),
+            "mute" => match quality_height {
+                Some(h) if h > 0 => format!("bv*[height<={h}]/bv*/b"),
+                _ => "bv*/b".to_string(),
+            },
+            _ => {
+                if ffmpeg_available {
+                    match quality_height {
+                        Some(h) if h > 0 => format!(
+                            "bv*[height<={h}]+ba[ext=m4a]/bv*[height<={h}]+ba/b[height<={h}]/b"
+                        ),
+                        _ => "bv*+ba[ext=m4a]/bv*+ba/b".to_string(),
+                    }
+                } else {
+                    tracing::warn!("[yt-dlp] ffmpeg not available, using combined-stream fallback (best with audio)");
+                    match quality_height {
+                        Some(h) if h > 0 => format!("b[height<={h}]/b"),
+                        _ => "b".to_string(),
+                    }
+                }
+            }
+        }
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 pub async fn download_video(
     ytdlp: &Path,
@@ -3150,52 +3210,7 @@ pub async fn download_video(
     let ffmpeg_available = ffmpeg_res.is_ok() || crate::core::ffmpeg::is_ffmpeg_available().await;
     let ffmpeg_location = find_ffmpeg_location_cached().await;
 
-    let format_selector = if let Some(fid) = format_id {
-        if let Some(h) = quality_height.filter(|h| *h > 0) {
-            let fallback = match mode {
-                "audio" => "ba/b".to_string(),
-                "mute" => format!("bv*[height<={}]/bv*/b", h),
-                _ => {
-                    if ffmpeg_available {
-                        format!(
-                            "bv*[height<={}]+ba[ext=m4a]/bv*[height<={}]+ba/b[height<={}]/b",
-                            h, h, h
-                        )
-                    } else {
-                        format!("b[height<={}]/b", h)
-                    }
-                }
-            };
-            format!("{}/{}", fid, fallback)
-        } else {
-            fid.to_string()
-        }
-    } else {
-        match mode {
-            "audio" => "ba/b".to_string(),
-            "mute" => match quality_height {
-                Some(h) if h > 0 => format!("bv*[height<={}]/bv*/b", h),
-                _ => "bv*/b".to_string(),
-            },
-            _ => {
-                if ffmpeg_available {
-                    match quality_height {
-                        Some(h) if h > 0 => format!(
-                            "bv*[height<={}]+ba[ext=m4a]/bv*[height<={}]+ba/b[height<={}]/b",
-                            h, h, h
-                        ),
-                        _ => "bv*+ba[ext=m4a]/bv*+ba/b".to_string(),
-                    }
-                } else {
-                    tracing::warn!("[yt-dlp] ffmpeg not available, using combined-stream fallback (best with audio)");
-                    match quality_height {
-                        Some(h) if h > 0 => format!("b[height<={}]/b", h),
-                        _ => "b".to_string(),
-                    }
-                }
-            }
-        }
-    };
+    let format_selector = build_format_selector(format_id, quality_height, mode, ffmpeg_available);
 
     let dir_len = output_dir.to_string_lossy().len();
     let max_name = if cfg!(target_os = "windows") {
@@ -5295,9 +5310,40 @@ mod tests {
     }
 
     use super::{
-        parse_fragment_progress, parse_planned_formats, parse_stream_info, postprocess_phase,
-        prepare_override_args, tuner_host_key, YoutubeExtractorArgs, PROGRESS_TEMPLATE,
+        build_format_selector, parse_fragment_progress, parse_planned_formats, parse_stream_info,
+        postprocess_phase, prepare_override_args, tuner_host_key, YoutubeExtractorArgs,
+        PROGRESS_TEMPLATE,
     };
+
+    #[test]
+    fn format_selector_pairs_video_stream_with_audio_when_ffmpeg_available() {
+        let sel = build_format_selector(Some("270"), Some(1080), "auto", true);
+        assert_eq!(
+            sel,
+            "270+ba[ext=m4a]/270+ba/270/bv*[height<=1080]+ba[ext=m4a]/bv*[height<=1080]+ba/b[height<=1080]/b"
+        );
+
+        let sel_noh = build_format_selector(Some("270"), None, "auto", true);
+        assert_eq!(sel_noh, "270+ba[ext=m4a]/270+ba/270");
+    }
+
+    #[test]
+    fn format_selector_respects_mute_and_audio_modes() {
+        let sel_mute = build_format_selector(Some("270"), Some(1080), "mute", true);
+        assert_eq!(sel_mute, "270/bv*[height<=1080]/bv*/b");
+
+        let sel_audio = build_format_selector(Some("140"), None, "audio", true);
+        assert_eq!(sel_audio, "140/ba/b");
+    }
+
+    #[test]
+    fn format_selector_without_ffmpeg_uses_combined_streams() {
+        let sel = build_format_selector(None, Some(1080), "auto", false);
+        assert_eq!(sel, "b[height<=1080]/b");
+
+        let sel_fid = build_format_selector(Some("270"), Some(1080), "auto", false);
+        assert_eq!(sel_fid, "270/b[height<=1080]/b");
+    }
 
     #[test]
     fn youtube_args_saem_numa_flag_so() {
