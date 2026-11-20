@@ -1116,7 +1116,6 @@
 
           {#if showLibrebox}
             <HomeUrlBar
-              variant="stage"
               bind:url
               bind:mode={homeInputMode}
               bind:inputEl={urlInput}
