@@ -217,7 +217,9 @@ impl DouyinDownloader {
             }
         };
 
-        if video.height >= 1080 || video.width >= 1080 {
+        let short_edge = std::cmp::min(video.width, video.height);
+
+        if short_edge >= 1080 {
             let (w1080, h1080) = scale(video.width, video.height, 1080);
             qualities.push(MediaVideoQuality {
                 label: "1080p".to_string(),
@@ -380,7 +382,7 @@ impl PlatformDownloader for DouyinDownloader {
     ) -> anyhow::Result<DownloadResult> {
         let _ = progress.send(ProgressUpdate::percent(0.0)).await;
 
-        let quality = opts
+        let selected_quality = opts
             .quality
             .as_ref()
             .and_then(|q| {
@@ -389,8 +391,21 @@ impl PlatformDownloader for DouyinDownloader {
                     .iter()
                     .find(|vq| vq.label == q_str || format!("{}p", vq.height) == q_str)
             })
-            .or_else(|| info.available_qualities.first())
-            .ok_or_else(|| anyhow!("No video URL available"))?;
+            .or_else(|| info.available_qualities.first());
+
+        let mut candidates = Vec::new();
+        if let Some(sq) = selected_quality {
+            candidates.push(sq);
+        }
+        for q in &info.available_qualities {
+            if !candidates.iter().any(|c| c.url == q.url) {
+                candidates.push(q);
+            }
+        }
+
+        if candidates.is_empty() {
+            return Err(anyhow!("No video URL available"));
+        }
 
         let title = if info.title.trim().is_empty() {
             "Douyin Video"
@@ -416,15 +431,41 @@ impl PlatformDownloader for DouyinDownloader {
 
         let client = Self::client()?;
 
-        let bytes = direct_downloader::download_direct_with_headers(
-            &client,
-            &quality.url,
-            &output,
-            progress.clone(),
-            Some(headers),
-            Some(&opts.cancel_token),
-        )
-        .await?;
+        let mut last_err = None;
+        let mut downloaded_bytes = None;
+
+        for (idx, quality) in candidates.iter().enumerate() {
+            match direct_downloader::download_direct_with_headers(
+                &client,
+                &quality.url,
+                &output,
+                progress.clone(),
+                Some(headers.clone()),
+                Some(&opts.cancel_token),
+            )
+            .await
+            {
+                Ok(bytes) => {
+                    downloaded_bytes = Some(bytes);
+                    break;
+                }
+                Err(e) => {
+                    tracing::warn!(
+                        "[douyin] Quality {} failed ({}); attempting fallback candidate if available",
+                        quality.label,
+                        e
+                    );
+                    last_err = Some(e);
+                    if idx + 1 < candidates.len() {
+                        let _ = progress.send(ProgressUpdate::percent(0.0)).await;
+                    }
+                }
+            }
+        }
+
+        let bytes = downloaded_bytes.ok_or_else(|| {
+            last_err.unwrap_or_else(|| anyhow!("Failed to download Douyin video"))
+        })?;
 
         Ok(DownloadResult {
             file_path: output,
@@ -498,5 +539,30 @@ mod tests {
             .url
             .contains("ratio=1080p"));
         assert!(media_info.available_qualities[1].url.contains("ratio=720p"));
+    }
+
+    #[test]
+    fn test_douyin_landscape_720p_does_not_offer_1080p() {
+        let video = ShareVideo {
+            video_id: "7704466212453371235".to_string(),
+            title: "Landscape Video".to_string(),
+            author: "Creator".to_string(),
+            duration_seconds: Some(30.0),
+            thumbnail_url: None,
+            width: 1280,
+            height: 720,
+            play_url: "https://aweme.snssdk.com/aweme/v1/play/?ratio=720p&video_id=v123"
+                .to_string(),
+        };
+
+        let media_info = DouyinDownloader::build_media_info(video);
+        assert_eq!(media_info.available_qualities.len(), 1);
+        assert_eq!(media_info.available_qualities[0].label, "720p");
+        assert_eq!(media_info.available_qualities[0].width, 1280);
+        assert_eq!(media_info.available_qualities[0].height, 720);
+        assert!(!media_info
+            .available_qualities
+            .iter()
+            .any(|q| q.label == "1080p"));
     }
 }
