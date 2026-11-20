@@ -211,9 +211,13 @@ pub async fn download_course(
                 }
 
                 if let Some(ref desc) = detail.description {
-                    if libreget_core::core::course_utils::save_description(&lesson_dir, desc, "html")
-                        .await
-                        .is_err()
+                    if libreget_core::core::course_utils::save_description(
+                        &lesson_dir,
+                        desc,
+                        "html",
+                    )
+                    .await
+                    .is_err()
                     {
                         failures += 1;
                     }
