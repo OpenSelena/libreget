@@ -53,10 +53,6 @@ fn setup_environment() {
 
     #[cfg(target_os = "linux")]
     {
-        if std::env::var("WEBKIT_DISABLE_DMABUF_RENDERER").is_err() {
-            std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
-        }
-
         let is_wayland = std::env::var("XDG_SESSION_TYPE").as_deref() == Ok("wayland")
             || std::env::var_os("WAYLAND_DISPLAY").is_some();
 
