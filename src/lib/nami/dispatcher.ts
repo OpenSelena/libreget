@@ -35,7 +35,6 @@ export async function dispatchMultiTierDownload(options: MultiTierOptions): Prom
   }
 
   // Fallback to gallery-dl orchestrator
-  onProgress?.('Switching to gallery-dl engine...', 0);
   if (options.gdlRunner) {
     return await options.gdlRunner();
   }

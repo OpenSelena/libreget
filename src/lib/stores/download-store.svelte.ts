@@ -425,6 +425,35 @@ export function markGenericComplete(id: number, success: boolean, error?: string
   flushNow();
 }
 
+export function registerGenericDownload(
+  id: number,
+  title: string,
+  platform: string,
+  thumbnail_url?: string | null,
+  author?: string | null,
+  queueKind?: QueueKind,
+) {
+  const now = Date.now();
+  downloads.set(id, {
+    kind: "generic",
+    id,
+    name: title,
+    platform,
+    percent: 0,
+    speed: 0,
+    downloadedBytes: 0,
+    totalBytes: null,
+    phase: "archiving",
+    status: "downloading",
+    startedAt: now,
+    lastUpdateAt: now,
+    thumbnail_url: thumbnail_url ?? null,
+    author: author ?? null,
+    queueKind: queueKind ?? "image",
+  });
+  flushNow();
+}
+
 export function upsertGenericProgress(
   id: number,
   title: string,

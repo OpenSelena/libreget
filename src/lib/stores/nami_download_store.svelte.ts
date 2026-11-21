@@ -8,6 +8,11 @@ import {
 } from "$lib/api/nami";
 import { parseProfileUrl } from "$lib/utils/nami_parser";
 import { dispatchMultiTierDownload } from "$lib/nami/dispatcher";
+import {
+  registerGenericDownload,
+  upsertGenericProgress,
+  markGenericComplete,
+} from "$lib/stores/download-store.svelte";
 
 export type StatusType = "success" | "error" | "info";
 
@@ -15,6 +20,14 @@ export interface NamiDraft {
   url: string;
   contentType: string;
   selectedProfileUrl: string | null;
+}
+
+export interface CreatorMetaSnapshot {
+  name: string;
+  handle: string;
+  avatar?: string;
+  platform: string;
+  platformName?: string;
 }
 
 let draft = $state<NamiDraft>({
@@ -25,6 +38,9 @@ let draft = $state<NamiDraft>({
 
 let active = $state(false);
 let downloadId = $state<string | null>(null);
+let currentQueueId: number | null = null;
+let currentTitle = "";
+let currentPlatform = "nami";
 let filesDownloaded = $state(0);
 let stage = $state<string | null>(null);
 let stageIndex = $state<number | null>(null);
@@ -112,6 +128,20 @@ function applyProgress(progressData: DownloadProgress) {
   if (typeof progressData.stage_total === "number") {
     stageTotal = progressData.stage_total;
   }
+
+  if (currentQueueId) {
+    upsertGenericProgress(
+      currentQueueId,
+      currentTitle,
+      currentPlatform,
+      0,
+      0,
+      filesDownloaded,
+      null,
+      progressData.message || "Archiving profile...",
+      null,
+    );
+  }
 }
 
 function resetProgressState() {
@@ -127,6 +157,7 @@ export async function startDownload(
   outputDir: string,
   cookiesFile: string,
   contentType: string,
+  creatorMeta?: CreatorMetaSnapshot | null,
 ): Promise<DownloadResult | null> {
   if (active) {
     throw new Error("A download is already in progress");
@@ -153,6 +184,21 @@ export async function startDownload(
 
   const id = generateDownloadId();
   downloadId = id;
+  const qId = Date.now();
+  currentQueueId = qId;
+  currentPlatform = creatorMeta?.platform || parsed.platform || "nami";
+  currentTitle = creatorMeta?.name
+    ? `${creatorMeta.name} (${creatorMeta.handle}) - ${creatorMeta.platformName || currentPlatform} Profile Archive`
+    : `${cleanUrl} - Profile Archive`;
+
+  registerGenericDownload(
+    qId,
+    currentTitle,
+    currentPlatform,
+    creatorMeta?.avatar || null,
+    creatorMeta?.handle || null,
+    "image",
+  );
 
   try {
     unlisten = await listenToDownloadProgress(id, applyProgress);
@@ -174,15 +220,24 @@ export async function startDownload(
       status = `Download cancelled: ${result.files_count} file(s) saved before stopping.`;
       statusType = "info";
       statusDetail = "";
+      if (currentQueueId) {
+        markGenericComplete(currentQueueId, false, "Download cancelled", cleanOutputDir, result.files_count);
+      }
     } else if (result.success) {
       status = `Downloaded ${result.files_count} file(s) successfully!`;
       statusType = "success";
       statusDetail = "";
+      if (currentQueueId) {
+        markGenericComplete(currentQueueId, true, undefined, cleanOutputDir, result.files_count);
+      }
     } else {
       const lines = (result.message || "Download failed").split("\n");
       status = lines[0] || "Download failed";
       statusType = "error";
       statusDetail = lines.length > 1 ? lines.slice(1).join("\n") : "";
+      if (currentQueueId) {
+        markGenericComplete(currentQueueId, false, status, cleanOutputDir, result.files_count);
+      }
     }
 
     return result;
@@ -191,10 +246,14 @@ export async function startDownload(
     status = `Download failed: ${msg}`;
     statusType = "error";
     statusDetail = "";
+    if (currentQueueId) {
+      markGenericComplete(currentQueueId, false, msg, cleanOutputDir, 0);
+    }
     return null;
   } finally {
     active = false;
     cancelling = false;
+    currentQueueId = null;
     if (unlisten) {
       try {
         unlisten();
@@ -214,6 +273,10 @@ export async function stopDownload() {
   cancelling = true;
   status = "Cancelling download...";
   statusType = "info";
+
+  if (currentQueueId) {
+    markGenericComplete(currentQueueId, false, "Download cancelled");
+  }
 
   try {
     await cancelDownload(downloadId);

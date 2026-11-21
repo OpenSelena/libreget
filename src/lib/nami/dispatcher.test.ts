@@ -53,7 +53,6 @@ describe('nami multi-tier dispatcher', () => {
     });
 
     expect(mockNativeRunner).toHaveBeenCalledTimes(1);
-    expect(progressSpy).toHaveBeenCalledWith('Switching to gallery-dl engine...', 0);
     expect(mockGdlRunner).toHaveBeenCalledTimes(1);
     expect(result.success).toBe(true);
     expect(result.files_count).toBe(3);

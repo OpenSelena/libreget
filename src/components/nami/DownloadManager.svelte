@@ -37,7 +37,9 @@
   import { showToast } from '$lib/stores/toast-store.svelte';
   import { parseProfileUrl, type ParsedProfile } from '$lib/utils/nami_parser';
   import { namiStageLabel, namiStatusMessage, type NamiTranslate } from '$lib/nami/i18n';
+  import { resolveCreatorMetadata } from '$lib/nami/metadata';
   import { onMount, onDestroy } from 'svelte';
+  import { goto } from '$app/navigation';
   import { t } from '$lib/i18n';
 
   interface Props {
@@ -137,9 +139,19 @@
     }
   }
 
+  let addedNoticeActive = $state(false);
+  let addedNoticeTimer: ReturnType<typeof setTimeout> | null = null;
+
+  onDestroy(() => {
+    if (addedNoticeTimer) {
+      clearTimeout(addedNoticeTimer);
+    }
+  });
+
   function handleUrlChange(val: string) {
     url = val;
     avatarError = false;
+    addedNoticeActive = false;
     const trimmed = val.trim();
 
     if (!trimmed) {
@@ -164,25 +176,13 @@
     const handle = p.username ? `@${p.username}` : p.cleanUrl;
     const name = p.username ? p.username : platName;
 
-    // Default fast avatar candidate
-    let fallbackAvatar = '';
-    if (p.platform === 'instagram') {
-      fallbackAvatar = `https://unavatar.io/instagram/${p.username}`;
-    } else if (p.platform === 'tiktok') {
-      fallbackAvatar = `https://unavatar.io/tiktok/${p.username}`;
-    } else if (p.platform === 'x') {
-      fallbackAvatar = `https://unavatar.io/x/${p.username}`;
-    } else {
-      fallbackAvatar = `https://unavatar.io/${p.username}`;
-    }
-
     currentCreator = {
       platform: p.platform,
       platformName: platName,
       name,
       handle,
       meta: `${handle} • ${platName}`,
-      avatar: fallbackAvatar,
+      avatar: '',
       url: p.cleanUrl,
     };
 
@@ -193,72 +193,19 @@
   }
 
   async function enrichCreatorInfo(p: ParsedProfile) {
-    if (!p.username) return;
-
-    if (p.platform === 'tiktok') {
-      try {
-        const res = await httpFetch({
-          url: `https://www.tiktok.com/@${p.username}`,
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-          },
-          timeout_ms: 4000,
-        });
-        if (res.ok && res.body) {
-          const match = res.body.match(/<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>([\s\S]*?)<\/script>/);
-          if (match) {
-            const json = JSON.parse(match[1]);
-            const userDetail = json?.['__DEFAULT_SCOPE__']?.['webapp.user-detail'];
-            const user = userDetail?.userInfo?.user;
-            const stats = userDetail?.userInfo?.stats;
-            if (user && currentCreator && currentCreator.url === p.cleanUrl) {
-              const avatar = user.avatarLarger || user.avatarMedium || currentCreator.avatar;
-              const nickname = user.nickname || currentCreator.name;
-              const followers = stats?.followerCount ? `${formatNumber(stats.followerCount)} followers` : '';
-              const videos = stats?.videoCount ? `${formatNumber(stats.videoCount)} videos` : '';
-              const parts = [currentCreator.handle, 'TikTok', followers, videos].filter(Boolean);
-              currentCreator.avatar = avatar;
-              currentCreator.name = nickname;
-              currentCreator.meta = parts.join(' • ');
-            }
-          }
-        }
-      } catch {
-        // Fallback remains active
+    try {
+      const meta = await resolveCreatorMetadata(p);
+      if (meta && currentCreator && currentCreator.url === p.cleanUrl) {
+        currentCreator = {
+          ...currentCreator,
+          name: meta.name || currentCreator.name,
+          meta: meta.meta || currentCreator.meta,
+          avatar: meta.avatar || currentCreator.avatar,
+        };
       }
-    } else if (p.platform === 'instagram') {
-      try {
-        const res = await httpFetch({
-          url: `https://www.instagram.com/api/v1/users/web_profile_info/?username=${encodeURIComponent(p.username)}`,
-          headers: {
-            'X-IG-App-ID': '936619743392459',
-            'Referer': `https://www.instagram.com/${p.username}/`,
-          },
-          timeout_ms: 4000,
-        });
-        if (res.ok && res.body) {
-          const data = JSON.parse(res.body)?.data?.user;
-          if (data && currentCreator && currentCreator.url === p.cleanUrl) {
-            const avatar = data.profile_pic_url_hd || data.profile_pic_url || currentCreator.avatar;
-            const fullName = data.full_name || currentCreator.name;
-            const followers = data.edge_followed_by?.count ? `${formatNumber(data.edge_followed_by.count)} followers` : '';
-            const posts = data.edge_owner_to_timeline_media?.count ? `${formatNumber(data.edge_owner_to_timeline_media.count)} posts` : '';
-            const parts = [currentCreator.handle, 'Instagram', followers, posts].filter(Boolean);
-            currentCreator.avatar = avatar;
-            currentCreator.name = fullName;
-            currentCreator.meta = parts.join(' • ');
-          }
-        }
-      } catch {
-        // Fallback remains active
-      }
+    } catch {
+      // Fallback remains active
     }
-  }
-
-  function formatNumber(num: number): string {
-    if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1)}M`;
-    if (num >= 1_000) return `${(num / 1_000).toFixed(1)}K`;
-    return String(num);
   }
 
   async function handlePaste() {
@@ -320,8 +267,18 @@
       return;
     }
 
+    const creatorSnapshot = currentCreator ? { ...currentCreator } : null;
+
     try {
-      await startStoreDownload(downloadUrl, outputDir, cookiesFile, contentType);
+      void startStoreDownload(downloadUrl, outputDir, cookiesFile, contentType, creatorSnapshot);
+      url = '';
+      currentCreator = null;
+      setDraft({ url: '', contentType, selectedProfileUrl: null });
+      addedNoticeActive = true;
+      if (addedNoticeTimer) clearTimeout(addedNoticeTimer);
+      addedNoticeTimer = setTimeout(() => {
+        addedNoticeActive = false;
+      }, 5000);
     } catch (error) {
       console.error('Failed to start download:', error);
     }
@@ -359,6 +316,7 @@
       id="nami-url-input"
       class="url-input"
       type="text"
+      aria-label="Creator profile or media URL"
       bind:value={url}
       oninput={(e) => handleUrlChange((e.target as HTMLInputElement).value)}
       onkeydown={(e) => {
@@ -416,6 +374,16 @@
     </div>
   {/if}
 
+  <!-- Added to Downloads Feedback Notice (Exact LibreGet / Demo match) -->
+  {#if addedNoticeActive}
+    <div class="feedback feedback-enter added-notice">
+      <strong class="added-notice-title">{$t('librebox.added_to_downloads')}</strong>
+      <button type="button" class="added-notice-link" onclick={() => goto("/downloads")}>
+        {$t('librebox.open_downloads')} &rarr;
+      </button>
+    </div>
+  {/if}
+
   <!-- Alerts / Notices -->
   {#if depStatus && !depStatus.ok}
     <div class="notice notice-danger" role="alert">
@@ -423,7 +391,7 @@
     </div>
   {/if}
 
-  {#if status}
+  {#if status && !status.includes('Starting') && !status.includes('Switching to')}
     <div
       class="notice"
       class:notice-success={statusType === 'success'}
@@ -530,55 +498,12 @@
           type="button"
           class="download-primary-btn"
           onclick={startDownload}
-          disabled={downloading || missingOutputDir || needsCookiesWarning || platformMismatch}
+          disabled={missingOutputDir || needsCookiesWarning || platformMismatch}
         >
-          {downloading ? 'Archiving...' : 'Download'}
+          Download
         </button>
       </div>
     </section>
-  {/if}
-
-  <!-- Active Download Progress Card -->
-  {#if downloading}
-    <div class="home-panel live-download-card">
-      <div class="item-header">
-        <div class="item-header-left">
-          <span class="item-status">Archiving</span>
-          {#if stage}
-            <span class="tag tag-accent">{stage}</span>
-          {/if}
-          <span class="item-name">{currentCreator?.name || 'Creator Archive'}</span>
-        </div>
-        <button
-          type="button"
-          class="btn btn-sm btn-destructive"
-          onclick={handleStop}
-          disabled={cancelling}
-        >
-          {cancelling ? 'Cancelling...' : 'Cancel'}
-        </button>
-      </div>
-
-      <div class="progress-row">
-        <div class="progress-track">
-          <div
-            class="progress-fill"
-            style="width: {stageTotal ? Math.round(((stageIndex ?? 1) / stageTotal) * 100) : 40}%;"
-          ></div>
-        </div>
-        <span class="progress-pct">
-          {stageTotal ? Math.round(((stageIndex ?? 1) / stageTotal) * 100) : 40}%
-        </span>
-      </div>
-
-      <div class="item-meta">
-        <span class="meta-text">{filesDownloaded} files downloaded</span>
-        {#if lastMessage}
-          <span class="meta-sep">•</span>
-          <span class="meta-text">{lastMessage}</span>
-        {/if}
-      </div>
-    </div>
   {/if}
 
   <!-- Clean Saved Profiles Section (When URL bar is empty) -->
@@ -815,6 +740,32 @@
     font-weight: 500;
   }
 
+  .added-notice {
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+  }
+
+  .added-notice-title {
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .added-notice-link {
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--accent-hi);
+    cursor: pointer;
+  }
+
+  .added-notice-link:hover {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
   .feedback-enter {
     animation: feedbackEnter var(--duration-base) var(--ease-out);
   }
@@ -989,90 +940,7 @@
     cursor: not-allowed;
   }
 
-  /* Active download item */
-  .live-download-card {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-3);
-  }
 
-  .item-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-3);
-  }
-
-  .item-header-left {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    min-width: 0;
-    flex: 1;
-  }
-
-  .item-status {
-    display: inline-flex;
-    align-items: center;
-    height: 20px;
-    padding: 0 8px;
-    border-radius: var(--radius-full);
-    font-size: var(--text-xs);
-    font-weight: 600;
-    background: var(--accent-soft);
-    color: var(--accent-hi);
-  }
-
-  .item-name {
-    font-size: var(--text-base);
-    font-weight: 600;
-    color: var(--text);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .progress-row {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    width: 100%;
-  }
-
-  .progress-track {
-    flex: 1;
-    height: 6px;
-    border-radius: var(--radius-full);
-    background: var(--fill-2);
-    overflow: hidden;
-  }
-
-  .progress-fill {
-    height: 100%;
-    border-radius: var(--radius-full);
-    background: var(--accent);
-    transition: width 0.3s ease-out;
-  }
-
-  .progress-pct {
-    font-size: var(--text-sm);
-    color: var(--text-dim);
-    font-variant-numeric: tabular-nums;
-    min-width: 36px;
-    text-align: right;
-  }
-
-  .item-meta {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: var(--text-sm);
-    color: var(--text-dim);
-  }
-
-  .meta-sep {
-    color: var(--text-faint);
-  }
 
   /* Saved Profiles Section */
   .saved-profiles-section {
