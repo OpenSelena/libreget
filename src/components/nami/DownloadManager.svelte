@@ -73,6 +73,7 @@
   let savedProfiles = $state<Array<Profile & { _platformLabel?: string }>>([]);
   let currentCreator = $state<CreatorInfo | null>(null);
   let avatarError = $state(false);
+  let failedAvatars = $state<Record<string, boolean>>({});
   let isResolvingMeta = $state(false);
   let profileAvatars = $state<Record<string, string>>({});
   let urlInputEl = $state<HTMLInputElement | null>(null);
@@ -378,18 +379,33 @@
         </svg>
       </button>
 
-      <button
-        type="button"
-        class="go-btn"
-        onclick={startDownload}
-        title="Download"
-        disabled={missingOutputDir || needsCookiesWarning || platformMismatch}
-        aria-label="Start download"
-      >
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 5v14M6 13l6 6 6-6" />
-        </svg>
-      </button>
+      {#if downloading}
+        <button
+          type="button"
+          class="go-btn stop-btn"
+          onclick={handleStop}
+          disabled={cancelling}
+          title={cancelling ? "Stopping..." : "Stop download"}
+          aria-label="Stop download"
+        >
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+            <rect x="6" y="6" width="12" height="12" rx="1" />
+          </svg>
+        </button>
+      {:else}
+        <button
+          type="button"
+          class="go-btn"
+          onclick={startDownload}
+          title="Download"
+          disabled={missingOutputDir || needsCookiesWarning || platformMismatch}
+          aria-label="Start download"
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 5v14M6 13l6 6 6-6" />
+          </svg>
+        </button>
+      {/if}
     {:else}
       <button
         type="button"
@@ -416,6 +432,51 @@
       <button type="button" class="added-notice-link" onclick={() => goto("/downloads")}>
         {$t('librebox.open_downloads')} &rarr;
       </button>
+    </div>
+  {/if}
+
+  {#if downloading}
+    <div class="active-download-bar">
+      <div class="active-download-info">
+        <span class="active-download-pulse"></span>
+        <div class="active-download-text">
+          <span class="active-download-title">{stage ? namiStageLabel(stage, tr) : 'Archiving media...'}</span>
+          <span class="active-download-sub">
+            {#if filesDownloaded > 0}
+              {filesDownloaded} file{filesDownloaded === 1 ? '' : 's'} downloaded
+            {:else if lastMessage}
+              {lastMessage}
+            {:else}
+              Download in progress...
+            {/if}
+          </span>
+        </div>
+      </div>
+      <div class="active-download-actions">
+        <button
+          type="button"
+          class="btn btn-sm active-stop-btn"
+          onclick={handleStop}
+          disabled={cancelling}
+          aria-label="Stop download"
+        >
+          {#if cancelling}
+            <span>Stopping...</span>
+          {:else}
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor">
+              <rect x="6" y="6" width="12" height="12" rx="1" />
+            </svg>
+            <span>Stop</span>
+          {/if}
+        </button>
+        <button
+          type="button"
+          class="btn btn-sm btn-ghost"
+          onclick={() => goto('/downloads')}
+        >
+          Downloads &rarr;
+        </button>
+      </div>
     </div>
   {/if}
 
@@ -533,15 +594,26 @@
           </div>
         </div>
 
-        <!-- Full-Width Download Primary Button -->
-        <button
-          type="button"
-          class="download-primary-btn"
-          onclick={startDownload}
-          disabled={missingOutputDir || needsCookiesWarning || platformMismatch}
-        >
-          Download
-        </button>
+        <!-- Full-Width Download / Stop Primary Button -->
+        {#if downloading}
+          <button
+            type="button"
+            class="download-primary-btn stop-primary-btn"
+            onclick={handleStop}
+            disabled={cancelling}
+          >
+            {cancelling ? 'Stopping...' : 'Stop Download'}
+          </button>
+        {:else}
+          <button
+            type="button"
+            class="download-primary-btn"
+            onclick={startDownload}
+            disabled={missingOutputDir || needsCookiesWarning || platformMismatch}
+          >
+            Download
+          </button>
+        {/if}
       </div>
     </section>
   {/if}
@@ -566,13 +638,14 @@
                 if (e.key === 'Enter') loadProfileDirectly(profile.url);
               }}
             >
-              {#if profileAvatars[profile.url] || getCachedCreator(profile.platform, profile.username || profile.url)?.avatar}
+              {#if (profileAvatars[profile.url] || getCachedCreator(profile.platform, profile.username || profile.url)?.avatar) && !failedAvatars[profile.url]}
                 <img
                   src={profileAvatars[profile.url] || getCachedCreator(profile.platform, profile.username || profile.url)?.avatar}
                   alt={profile.username || profile.platform}
                   class="preview-avatar-thumb"
                   referrerpolicy="no-referrer"
                   onerror={() => {
+                    failedAvatars[profile.url] = true;
                     delete profileAvatars[profile.url];
                   }}
                 />
@@ -994,6 +1067,91 @@
   .download-primary-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  .download-primary-btn.stop-primary-btn {
+    background: var(--danger, #ff3b30);
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(255, 59, 48, 0.35);
+  }
+
+  .go-btn.stop-btn {
+    background: var(--danger, #ff3b30);
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(255, 59, 48, 0.35);
+  }
+
+  .active-download-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .active-download-info {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-width: 0;
+  }
+
+  .active-download-pulse {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    animation: active-pulse 1.4s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes active-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.85); }
+  }
+
+  .active-download-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .active-download-title {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .active-download-sub {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+  }
+
+  .active-download-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex-shrink: 0;
+  }
+
+  .active-stop-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: color-mix(in srgb, var(--danger, #ff3b30) 15%, transparent);
+    color: var(--danger, #ff3b30);
+    border: 1px solid color-mix(in srgb, var(--danger, #ff3b30) 30%, transparent);
+  }
+
+  .active-stop-btn:hover:not(:disabled) {
+    background: var(--danger, #ff3b30);
+    color: #ffffff;
   }
 
 

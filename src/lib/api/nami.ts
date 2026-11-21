@@ -1,5 +1,34 @@
-import { invoke } from '@tauri-apps/api/core';
+import { invoke, convertFileSrc } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+
+export interface CachedAvatar {
+  file_path: string;
+  data_url: string;
+}
+
+export async function cacheAvatar(url: string): Promise<string> {
+  if (!url || typeof url !== 'string') return '';
+  const trimmed = url.trim();
+  if (
+    trimmed.startsWith('asset://') ||
+    trimmed.startsWith('http://asset.localhost') ||
+    trimmed.startsWith('data:')
+  ) {
+    return trimmed;
+  }
+  try {
+    const res = await invoke<CachedAvatar>('nami_cache_avatar', { url: trimmed });
+    if (res?.data_url) {
+      return res.data_url;
+    }
+    if (res?.file_path) {
+      return convertFileSrc(res.file_path);
+    }
+  } catch (err) {
+    console.warn('[nami] Avatar caching failed, falling back to remote URL:', err);
+  }
+  return trimmed;
+}
 
 export interface Profile {
   url: string;

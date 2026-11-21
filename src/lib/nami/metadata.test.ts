@@ -4,6 +4,7 @@ import * as namiApi from '$lib/api/nami';
 
 vi.mock('$lib/api/nami', () => ({
   httpFetch: vi.fn(),
+  cacheAvatar: vi.fn(async (url: string) => url),
 }));
 
 describe('nami metadata extraction', () => {

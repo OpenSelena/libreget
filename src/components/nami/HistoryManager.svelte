@@ -126,10 +126,6 @@
           {platform.label}
         </button>
       {/each}
-
-      {#if visibleCount < filteredRecords.length}
-        <div bind:this={sentinelEl} class="hm-sentinel" aria-hidden="true"></div>
-      {/if}
     </div>
 
     <button

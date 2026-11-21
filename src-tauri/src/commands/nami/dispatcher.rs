@@ -821,10 +821,16 @@ fn run_process_stream(
         });
     }
 
-    if status.success() || final_count > 0 {
+    let is_up_to_date = status.code() == Some(4);
+
+    if status.success() || final_count > 0 || is_up_to_date {
         Ok(DownloadResult {
             success: true,
-            message: format!("Successfully downloaded {} files", final_count),
+            message: if is_up_to_date && final_count == 0 {
+                "Already up to date (no new files)".to_string()
+            } else {
+                format!("Successfully downloaded {} files", final_count)
+            },
             files_count: final_count,
             cancelled: false,
         })

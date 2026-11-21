@@ -249,11 +249,6 @@ pub fn build_yt_dlp_args(options: &YtDlpArgsOptions) -> Vec<String> {
         }
     }
 
-    if options.platform.eq_ignore_ascii_case("x") && options.skip_replies == Some(true) {
-        args.push("--filter".to_string());
-        args.push("not reply or in_reply_to_user_id == user_id".to_string());
-    }
-
     // Guard against CLI argument injection
     args.push("--".to_string());
     args.push(options.clean_url.to_string());

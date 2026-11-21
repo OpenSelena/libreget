@@ -35,6 +35,7 @@
   let syncingAll = $state(false);
   let syncFeedback = $state<string | null>(null);
   let profileAvatars = $state<Record<string, string>>({});
+  let failedAvatars = $state<Record<string, boolean>>({});
 
   let requestId = 0;
 
@@ -267,6 +268,7 @@
   {:else}
     <div class="surface-card">
       {#each profiles as profile (profile.url)}
+        {@const avatarSrc = profileAvatars[profile.url] || getCachedCreator(profile.platform || activePlatform, profile.username || profile.url)?.avatar}
         <div
           class="list-row interactive"
           role="button"
@@ -276,13 +278,14 @@
             if (e.key === 'Enter') onSelectProfileForDownload?.(profile.url);
           }}
         >
-          {#if profileAvatars[profile.url] || getCachedCreator(profile.platform || activePlatform, profile.username || profile.url)?.avatar}
+          {#if avatarSrc && !failedAvatars[profile.url]}
             <img
-              src={profileAvatars[profile.url] || getCachedCreator(profile.platform || activePlatform, profile.username || profile.url)?.avatar}
+              src={avatarSrc}
               alt={profile.username || profile.platform}
               class="pm-avatar-thumb"
               referrerpolicy="no-referrer"
               onerror={() => {
+                failedAvatars[profile.url] = true;
                 delete profileAvatars[profile.url];
               }}
             />

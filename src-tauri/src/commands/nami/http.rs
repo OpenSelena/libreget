@@ -145,6 +145,166 @@ pub async fn nami_http_fetch(options: HttpRequestOptions) -> Result<HttpResponse
     })
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct CachedAvatar {
+    pub file_path: String,
+    pub data_url: String,
+}
+
+#[command]
+pub async fn nami_cache_avatar(url: String) -> Result<CachedAvatar, String> {
+    let trimmed = url.trim();
+    if trimmed.is_empty() {
+        return Err("Avatar URL cannot be empty".to_string());
+    }
+
+    if trimmed.starts_with("data:") {
+        return Ok(CachedAvatar {
+            file_path: String::new(),
+            data_url: trimmed.to_string(),
+        });
+    }
+
+    if trimmed.starts_with("asset://") || trimmed.starts_with("http://asset.localhost") {
+        return Ok(CachedAvatar {
+            file_path: trimmed.to_string(),
+            data_url: trimmed.to_string(),
+        });
+    }
+
+    let nami_dir = crate::commands::nami::libreget_nami_dir()?;
+    let avatars_dir = nami_dir.join("avatars");
+    fs::create_dir_all(&avatars_dir)
+        .map_err(|e| format!("Failed to create avatars directory: {}", e))?;
+
+    use base64::Engine;
+    use sha2::{Digest, Sha256};
+
+    let ext_to_mime = |extension: &str| -> &'static str {
+        match extension {
+            "png" => "image/png",
+            "webp" => "image/webp",
+            "gif" => "image/gif",
+            "svg" => "image/svg+xml",
+            _ => "image/jpeg",
+        }
+    };
+
+    let mut hasher = Sha256::new();
+    hasher.update(trimmed.as_bytes());
+    let hash = format!("{:x}", hasher.finalize());
+
+    if let Ok(entries) = fs::read_dir(&avatars_dir) {
+        for entry in entries.flatten() {
+            if let Ok(ft) = entry.file_type() {
+                if ft.is_file() {
+                    if let Some(name) = entry.file_name().to_str() {
+                        if name.starts_with(&hash) {
+                            let path = entry.path();
+                            if let Ok(bytes) = fs::read(&path) {
+                                if !bytes.is_empty() {
+                                    let ext =
+                                        path.extension().and_then(|e| e.to_str()).unwrap_or("jpg");
+                                    let mime = ext_to_mime(ext);
+                                    let b64 =
+                                        base64::engine::general_purpose::STANDARD.encode(&bytes);
+                                    let data_url = format!("data:{};base64,{}", mime, b64);
+                                    return Ok(CachedAvatar {
+                                        file_path: path.to_string_lossy().to_string(),
+                                        data_url,
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    let client = crate::core::http_client::apply_global_proxy(reqwest::Client::builder())
+        .timeout(Duration::from_millis(12_000))
+        .build()
+        .map_err(|e| format!("Failed to build HTTP client for avatar: {}", e))?;
+
+    let user_agent = if trimmed.contains("fbsbx.com")
+        || trimmed.contains("facebook.com")
+        || trimmed.contains("instagram.com")
+    {
+        "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
+    } else {
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    };
+
+    let resp = client
+        .get(trimmed)
+        .header(reqwest::header::USER_AGENT, user_agent)
+        .header(
+            reqwest::header::ACCEPT,
+            "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+        )
+        .header(reqwest::header::ACCEPT_LANGUAGE, "en-US,en;q=0.9")
+        .send()
+        .await
+        .map_err(|e| format!("Network request failed for avatar: {}", e))?;
+
+    if !resp.status().is_success() {
+        return Err(format!(
+            "Avatar download failed with status {}",
+            resp.status()
+        ));
+    }
+
+    let content_type = resp
+        .headers()
+        .get(reqwest::header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("")
+        .to_lowercase();
+
+    if content_type.starts_with("text/html") {
+        return Err("Avatar request returned HTML instead of an image".to_string());
+    }
+
+    let ext = if content_type.contains("png") {
+        "png"
+    } else if content_type.contains("webp") {
+        "webp"
+    } else if content_type.contains("gif") {
+        "gif"
+    } else if content_type.contains("svg") {
+        "svg"
+    } else {
+        "jpg"
+    };
+
+    let bytes = resp
+        .bytes()
+        .await
+        .map_err(|e| format!("Failed to read avatar bytes: {}", e))?;
+
+    if bytes.is_empty() {
+        return Err("Received empty avatar response".to_string());
+    }
+
+    let target_path = avatars_dir.join(format!("{}.{}", hash, ext));
+    let temp_path = avatars_dir.join(format!("{}.tmp.{}", hash, std::process::id()));
+
+    fs::write(&temp_path, &bytes)
+        .map_err(|e| format!("Failed to write temporary avatar file: {}", e))?;
+    fs::rename(&temp_path, &target_path)
+        .map_err(|e| format!("Failed to persist avatar file: {}", e))?;
+
+    let mime = ext_to_mime(ext);
+    let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
+    let data_url = format!("data:{};base64,{}", mime, b64);
+
+    Ok(CachedAvatar {
+        file_path: target_path.to_string_lossy().to_string(),
+        data_url,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -121,6 +121,21 @@ fn normalize_profile_url(platform: &str, raw_input: &str) -> String {
         return format!("https://www.tiktok.com/@{}", user.to_lowercase());
     }
 
+    if platform == "facebook" && path.eq_ignore_ascii_case("profile.php") {
+        if let Some((_, query_and_frag)) = without_scheme.split_once('?') {
+            let (query, _) = query_and_frag
+                .split_once('#')
+                .unwrap_or((query_and_frag, ""));
+            for pair in query.split('&') {
+                if let Some((k, v)) = pair.split_once('=') {
+                    if k.eq_ignore_ascii_case("id") && !v.is_empty() {
+                        return format!("https://www.facebook.com/profile.php?id={}", v);
+                    }
+                }
+            }
+        }
+    }
+
     if platform == "x" {
         if path.starts_with("i/history/likes") {
             return "https://x.com/i/history/likes".to_string();
@@ -594,6 +609,17 @@ mod tests {
         assert_eq!(
             normalize_profile_url("x", "OpenSelena"),
             "https://x.com/openselena"
+        );
+        assert_eq!(
+            normalize_profile_url(
+                "facebook",
+                "https://www.facebook.com/profile.php?id=1000123456789&mibextid=kFxxjd"
+            ),
+            "https://www.facebook.com/profile.php?id=1000123456789"
+        );
+        assert_eq!(
+            normalize_profile_url("facebook", "zuck"),
+            "https://www.facebook.com/zuck"
         );
     }
 }

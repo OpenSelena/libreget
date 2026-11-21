@@ -261,26 +261,29 @@ pub fn reconcile_disk_on(conn: &Connection) -> rusqlite::Result<ReconcileResult>
         conn.execute("DELETE FROM nami_media WHERE id = ?1", params![id])?;
     }
 
-    let mut candidate_dirs = Vec::new();
-    if let Some(down) = dirs::download_dir() {
-        candidate_dirs.push(down.join("Nami"));
-    }
-    if let Ok(home) = std::env::var("HOME").or_else(|_| std::env::var("USERPROFILE")) {
-        let p = PathBuf::from(home).join("Downloads").join("Nami");
-        if !candidate_dirs.contains(&p) {
-            candidate_dirs.push(p);
+    #[cfg(not(test))]
+    {
+        let mut candidate_dirs = Vec::new();
+        if let Some(down) = dirs::download_dir() {
+            candidate_dirs.push(down.join("Nami"));
         }
-    }
-
-    let mut added = 0;
-    for dir in candidate_dirs {
-        if dir.exists() {
-            if let Ok(n) = scan_and_index_nami_dir(conn, &dir) {
-                added += n;
+        if let Ok(home) = std::env::var("HOME").or_else(|_| std::env::var("USERPROFILE")) {
+            let p = PathBuf::from(home).join("Downloads").join("Nami");
+            if !candidate_dirs.contains(&p) {
+                candidate_dirs.push(p);
             }
         }
+
+        let mut added = 0;
+        for dir in candidate_dirs {
+            if dir.exists() {
+                if let Ok(n) = scan_and_index_nami_dir(conn, &dir) {
+                    added += n;
+                }
+            }
+        }
+        checked += added;
     }
-    checked += added;
 
     Ok(ReconcileResult { checked, removed })
 }

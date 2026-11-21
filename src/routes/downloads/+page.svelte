@@ -13,6 +13,8 @@
     formatEta,
     getFinishedCount,
     getSpeedHistory,
+    removeDownload,
+    markGenericComplete,
     type CourseDownloadItem,
     type GenericDownloadItem,
     type QueueKind,
@@ -226,9 +228,8 @@
   async function cancelGenericDownload(id: number) {
     try {
       await invoke("cancel_generic_download", { downloadId: id });
-    } catch (e: any) {
-      const msg = typeof e === "string" ? e : e.message ?? $t("common.error");
-      showToast("error", msg);
+    } catch {
+      markGenericComplete(id, false, "Download cancelled");
     }
   }
 
@@ -284,9 +285,10 @@
   async function finishRemove(id: number, deletePartials: boolean) {
     try {
       await invoke("remove_download", { downloadId: id, deletePartials });
-    } catch (e: any) {
-      const msg = typeof e === "string" ? e : e.message ?? $t("common.error");
-      showToast("error", msg);
+    } catch {
+      // Generic / client-side item not tracked in backend download_queue
+    } finally {
+      removeDownload(id);
     }
   }
 
@@ -323,6 +325,11 @@
     } catch (e: any) {
       const msg = typeof e === "string" ? e : e.message ?? $t("common.error");
       showToast("error", msg);
+    }
+    for (const [id, item] of getDownloads()) {
+      if (item.status === "complete" || item.status === "error") {
+        removeDownload(id);
+      }
     }
   }
 
@@ -836,21 +843,25 @@
             <span class="item-name" title={item.name}>{item.name}</span>
           </div>
           <div class="item-header-actions">
-            {#if item.status === "downloading" && item.canPause !== false && item.queueKind !== "image"}
-              <button
-                class="action-icon-btn"
-                onclick={() => pauseDownload(item.id)}
-                aria-label={$t('downloads.pause')}
-              >
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="6" y="4" width="4" height="16" />
-                  <rect x="14" y="4" width="4" height="16" />
-                </svg>
-              </button>
+            {#if item.status === "downloading"}
+              {#if item.canPause !== false && item.queueKind !== "image"}
+                <button
+                  class="action-icon-btn"
+                  onclick={() => pauseDownload(item.id)}
+                  aria-label={$t('downloads.pause')}
+                  title={$t('downloads.pause')}
+                >
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="6" y="4" width="4" height="16" />
+                    <rect x="14" y="4" width="4" height="16" />
+                  </svg>
+                </button>
+              {/if}
               <button
                 class="action-icon-btn"
                 onclick={() => cancelGenericDownload(item.id)}
                 aria-label={$t('downloads.cancel')}
+                title={$t('downloads.cancel')}
               >
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M18 6L6 18M6 6l12 12" />
@@ -1058,9 +1069,14 @@
           {:else if qualityChip(item)}
             <span class="quality-chip" title={$t('downloads.quality_hint')}>{qualityChip(item)}</span>
           {/if}
-          {#if item.status === "complete" && (item.totalBytes || item.downloadedBytes)}
-            <span class="meta-sep" aria-hidden="true">·</span>
-            <span class="meta-text">{formatBytes(item.totalBytes ?? item.downloadedBytes)}</span>
+          {#if item.status === "complete"}
+            {#if item.totalBytes || item.downloadedBytes}
+              <span class="meta-sep" aria-hidden="true">·</span>
+              <span class="meta-text">{formatBytes(item.totalBytes ?? item.downloadedBytes)}</span>
+            {:else if (item.fileCount ?? 0) > 0}
+              <span class="meta-sep" aria-hidden="true">·</span>
+              <span class="meta-text">{item.fileCount} {item.fileCount === 1 ? 'file' : 'files'}</span>
+            {/if}
           {:else if item.status === "downloading" && !item.totalBytes && plannedSize(item)}
             <span class="meta-sep" aria-hidden="true">·</span>
             <span class="meta-text">≈ {formatBytes(plannedSize(item)!)}</span>
@@ -1136,7 +1152,11 @@
                 style:width="{Math.max(0, item.percent).toFixed(1)}%"
               ></div>
             </div>
-            <span class="item-percent">{Math.max(0, item.percent).toFixed(0)}%</span>
+            {#if item.status === "downloading" && item.percent <= 0 && (!isTransferPhase(item.phase) || item.queueKind === "image")}
+              <span class="item-percent indeterminate-glyph" title="Progress indeterminate">&hellip;</span>
+            {:else}
+              <span class="item-percent">{Math.max(0, item.percent).toFixed(0)}%</span>
+            {/if}
           </div>
         {/if}
 

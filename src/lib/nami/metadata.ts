@@ -1,4 +1,4 @@
-import { httpFetch } from '$lib/api/nami';
+import { httpFetch, cacheAvatar } from '$lib/api/nami';
 import type { ParsedProfile } from '$lib/utils/nami_parser';
 
 export interface CreatorMetadata {
@@ -247,7 +247,30 @@ export async function resolveCreatorMetadata(p: ParsedProfile): Promise<CreatorM
         const followers = data.followers_count ? `${data.followers_count.toLocaleString()} followers` : '';
         const parts = [handle, 'X', followers].filter(Boolean);
         meta = parts.join(' • ');
-      } else {
+      }
+
+      if (!avatar) {
+        const fxRes = await httpFetch({
+          url: `https://api.fxtwitter.com/${encodeURIComponent(p.username)}`,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1)',
+            'Accept': 'application/json',
+          },
+          timeout_ms: 5000,
+        });
+        if (fxRes.ok && fxRes.body && !fxRes.body.includes('<!DOCTYPE html>')) {
+          const fxData = JSON.parse(fxRes.body);
+          if (fxData.user) {
+            if (fxData.user.name) name = fxData.user.name;
+            if (fxData.user.avatar_url) avatar = fxData.user.avatar_url;
+            const followers = fxData.user.followers ? `${fxData.user.followers.toLocaleString()} followers` : '';
+            const parts = [handle, 'X', followers].filter(Boolean);
+            meta = parts.join(' • ');
+          }
+        }
+      }
+
+      if (!avatar) {
         const xRes = await httpFetch({
           url: `https://x.com/${encodeURIComponent(p.username)}`,
           headers: {
@@ -270,9 +293,17 @@ export async function resolveCreatorMetadata(p: ParsedProfile): Promise<CreatorM
           meta = parts.join(' • ');
         }
       }
+
+      if (avatar && avatar.includes('_normal.')) {
+        avatar = avatar.replace('_normal.', '_bigger.');
+      }
     } catch {
       // Keep fallbacks
     }
+  }
+
+  if (avatar) {
+    avatar = await cacheAvatar(avatar);
   }
 
   const resolved: CreatorMetadata = {
