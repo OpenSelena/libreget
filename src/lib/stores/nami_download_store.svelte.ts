@@ -182,10 +182,10 @@ export async function startDownload(
   statusType = "info";
   statusDetail = "";
 
-  const id = generateDownloadId();
-  downloadId = id;
   const qId = Date.now();
   currentQueueId = qId;
+  const id = String(qId);
+  downloadId = id;
   currentPlatform = creatorMeta?.platform || parsed.platform || "nami";
   currentTitle = creatorMeta?.name
     ? `${creatorMeta.name} (${creatorMeta.handle}) - ${creatorMeta.platformName || currentPlatform} Profile Archive`

@@ -37,7 +37,7 @@
   import { showToast } from '$lib/stores/toast-store.svelte';
   import { parseProfileUrl, type ParsedProfile } from '$lib/utils/nami_parser';
   import { namiStageLabel, namiStatusMessage, type NamiTranslate } from '$lib/nami/i18n';
-  import { resolveCreatorMetadata } from '$lib/nami/metadata';
+  import { resolveCreatorMetadata, getCachedCreator } from '$lib/nami/metadata';
   import { onMount, onDestroy } from 'svelte';
   import { goto } from '$app/navigation';
   import { t } from '$lib/i18n';
@@ -73,6 +73,9 @@
   let savedProfiles = $state<Array<Profile & { _platformLabel?: string }>>([]);
   let currentCreator = $state<CreatorInfo | null>(null);
   let avatarError = $state(false);
+  let isResolvingMeta = $state(false);
+  let profileAvatars = $state<Record<string, string>>({});
+  let urlInputEl = $state<HTMLInputElement | null>(null);
 
   let downloading = $derived(isActive());
   let cancelling = $derived(isCancelling());
@@ -134,6 +137,23 @@
         })
       );
       savedProfiles = results.flat();
+      savedProfiles.forEach(async (profile) => {
+        const target = profile.username || profile.url;
+        const cached = getCachedCreator(profile.platform, target);
+        if (cached?.avatar) {
+          profileAvatars[profile.url] = cached.avatar;
+        } else {
+          const parsed = parseProfileUrl(profile.url);
+          if (parsed.platform !== 'unknown' && parsed.cleanUrl) {
+            try {
+              const meta = await resolveCreatorMetadata(parsed);
+              if (meta?.avatar) {
+                profileAvatars[profile.url] = meta.avatar;
+              }
+            } catch {}
+          }
+        }
+      });
     } catch (error) {
       console.error('Failed to load profiles:', error);
     }
@@ -174,15 +194,25 @@
     };
     const platName = platformLabels[p.platform] || p.platform;
     const handle = p.username ? `@${p.username}` : p.cleanUrl;
-    const name = p.username ? p.username : platName;
+    let name = p.username ? p.username : platName;
+    let meta = `${handle} • ${platName}`;
+    let avatar = '';
+
+    const target = p.username || p.cleanUrl;
+    const cached = getCachedCreator(p.platform, target);
+    if (cached) {
+      if (cached.name) name = cached.name;
+      if (cached.meta) meta = cached.meta;
+      if (cached.avatar) avatar = cached.avatar;
+    }
 
     currentCreator = {
       platform: p.platform,
       platformName: platName,
       name,
       handle,
-      meta: `${handle} • ${platName}`,
-      avatar: '',
+      meta,
+      avatar,
       url: p.cleanUrl,
     };
 
@@ -193,6 +223,9 @@
   }
 
   async function enrichCreatorInfo(p: ParsedProfile) {
+    if (!currentCreator?.avatar) {
+      isResolvingMeta = true;
+    }
     try {
       const meta = await resolveCreatorMetadata(p);
       if (meta && currentCreator && currentCreator.url === p.cleanUrl) {
@@ -205,6 +238,8 @@
       }
     } catch {
       // Fallback remains active
+    } finally {
+      isResolvingMeta = false;
     }
   }
 
@@ -221,9 +256,8 @@
 
   function clearUrl() {
     url = '';
-    currentCreator = null;
-    selectedProfileUrl = null;
-    setDraft({ url: '', contentType, selectedProfileUrl: null });
+    handleUrlChange('');
+    urlInputEl?.focus();
   }
 
   async function toggleSaveProfile() {
@@ -317,6 +351,7 @@
       class="url-input"
       type="text"
       aria-label="Creator profile or media URL"
+      bind:this={urlInputEl}
       bind:value={url}
       oninput={(e) => handleUrlChange((e.target as HTMLInputElement).value)}
       onkeydown={(e) => {
@@ -325,7 +360,6 @@
       placeholder="Paste creator profile or media URL..."
       autocomplete="off"
       spellcheck="false"
-      disabled={downloading}
     />
 
     {#if url.trim()}
@@ -334,7 +368,6 @@
         class="clear-btn"
         onclick={clearUrl}
         title="Clear URL"
-        disabled={downloading}
         aria-label="Clear URL"
       >
         <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
@@ -347,7 +380,7 @@
         class="go-btn"
         onclick={startDownload}
         title="Download"
-        disabled={downloading || missingOutputDir || needsCookiesWarning || platformMismatch}
+        disabled={missingOutputDir || needsCookiesWarning || platformMismatch}
         aria-label="Start download"
       >
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -359,7 +392,6 @@
         type="button"
         class="paste-btn"
         onclick={handlePaste}
-        disabled={downloading}
       >
         <span>Paste</span>
         <kbd>Ctrl+V</kbd>
@@ -444,6 +476,10 @@
                 alt={currentCreator.name}
                 onerror={() => (avatarError = true)}
               />
+            {:else if isResolvingMeta}
+              <div class="preview-shimmer-badge" data-platform={currentCreator.platform}>
+                <div class="shimmer-pulse"></div>
+              </div>
             {:else}
               <div class="preview-initials-badge" data-platform={currentCreator.platform}>
                 <span>{currentCreator.name.slice(0, 2).toUpperCase()}</span>
@@ -526,9 +562,20 @@
                 if (e.key === 'Enter') loadProfileDirectly(profile.url);
               }}
             >
-              <div class="preview-initials-badge" data-platform={profile.platform}>
-                <span>{(profile.username || profile.platform).slice(0, 2).toUpperCase()}</span>
-              </div>
+              {#if profileAvatars[profile.url] || getCachedCreator(profile.platform, profile.username || profile.url)?.avatar}
+                <img
+                  src={profileAvatars[profile.url] || getCachedCreator(profile.platform, profile.username || profile.url)?.avatar}
+                  alt={profile.username || profile.platform}
+                  class="preview-avatar-thumb"
+                  onerror={() => {
+                    delete profileAvatars[profile.url];
+                  }}
+                />
+              {:else}
+                <div class="preview-initials-badge" data-platform={profile.platform}>
+                  <span>{(profile.username || profile.platform).slice(0, 2).toUpperCase()}</span>
+                </div>
+              {/if}
               <span class="list-row-content">
                 <span class="list-row-title">{profile.username || profile.url}</span>
                 <span class="list-row-sub">{profile.url} • {profile._platformLabel || profile.platform}</span>
@@ -961,5 +1008,40 @@
     border-radius: var(--radius-sm);
     font-size: 11px;
     flex-shrink: 0;
+  }
+
+  .preview-avatar-thumb {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-sm);
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+
+  .preview-shimmer-badge {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-hover);
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .shimmer-pulse {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.08) 50%,
+      transparent 100%
+    );
+    animation: shimmer 1.5s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
   }
 </style>

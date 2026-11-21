@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { convertFileSrc } from '@tauri-apps/api/core';
   import {
     getRecords,
     getFilteredRecords,
@@ -50,6 +51,10 @@
       day: 'numeric',
       year: 'numeric',
     });
+  }
+
+  function isImageFile(path: string): boolean {
+    return /\.(jpe?g|png|webp|gif|bmp|avif)$/i.test(path);
   }
 
   async function handleDelete(record: NamiMediaRecord) {
@@ -177,7 +182,26 @@
           }}
         >
           <div class="hm-media-icon" data-platform={record.platform}>
-            {#if record.file_path.endsWith('.mp4') || record.file_path.endsWith('.mov')}
+            {#if isImageFile(record.file_path)}
+              <img
+                src={convertFileSrc(record.file_path)}
+                alt={record.author || record.post_id}
+                class="hm-media-thumb"
+                loading="lazy"
+                onerror={(e) => {
+                  (e.currentTarget as HTMLElement).style.display = 'none';
+                  const fb = (e.currentTarget as HTMLElement).nextElementSibling as HTMLElement;
+                  if (fb) fb.style.display = 'flex';
+                }}
+              />
+              <div class="hm-media-fallback" style="display: none;">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <polyline points="21 15 16 10 5 21" />
+                </svg>
+              </div>
+            {:else if record.file_path.endsWith('.mp4') || record.file_path.endsWith('.mov')}
               <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
                 <polygon points="5 3 19 12 5 21 5 3" />
               </svg>
@@ -270,8 +294,9 @@
   }
 
   .hm-media-icon {
-    width: 34px;
-    height: 34px;
+    position: relative;
+    width: 38px;
+    height: 38px;
     border-radius: var(--radius-sm);
     display: flex;
     align-items: center;
@@ -279,6 +304,22 @@
     background: var(--fill-2);
     color: var(--text-muted);
     flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  .hm-media-thumb {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .hm-media-fallback {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .hm-media-icon[data-platform="instagram"] {

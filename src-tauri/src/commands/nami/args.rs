@@ -67,8 +67,8 @@ pub fn build_gallery_dl_args(options: &GalleryDlArgsOptions) -> Vec<String> {
         "3".to_string(),
         "--sleep-429".to_string(),
         "10".to_string(),
-        "--Print".to_string(),
-        "after:FILE_OK:{filename}.{extension}".to_string(),
+        "--exec".to_string(),
+        "echo FILE_OK:{_path}".to_string(),
     ];
 
     if let Some(threshold) = options.abort_after_duplicates {

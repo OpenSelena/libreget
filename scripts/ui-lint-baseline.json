@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-20",
+  "updated_at": "2026-11-21",
   "targets": {
     "/": {
       "control-size": 2,
@@ -36,12 +36,10 @@
       "text-contrast": 20
     },
     "/nami": {
-      "content-inset": 10,
-      "control-gap": 8,
-      "control-size": 6,
-      "font-size": 4,
+      "control-gap": 3,
+      "control-size": 4,
       "label-consistency": 3,
-      "text-contrast": 6
+      "text-contrast": 2
     },
     "/settings": {
       "control-gap": 18,

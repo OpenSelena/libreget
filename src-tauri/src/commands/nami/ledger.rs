@@ -1,6 +1,7 @@
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
-use std::path::Path;
+use std::fs;
+use std::path::{Path, PathBuf};
 
 use crate::core::db;
 
@@ -140,6 +141,102 @@ pub fn delete_record(id: &str) -> Result<bool, String> {
         .ok_or_else(|| "Failed to delete record from database".to_string())
 }
 
+fn scan_and_index_nami_dir(conn: &Connection, base_dir: &Path) -> rusqlite::Result<usize> {
+    if !base_dir.exists() {
+        return Ok(0);
+    }
+
+    let mut added = 0;
+    let mut exists_stmt =
+        conn.prepare_cached("SELECT 1 FROM nami_media WHERE file_path = ?1 LIMIT 1")?;
+    let mut insert_stmt = conn.prepare_cached(
+        "INSERT OR IGNORE INTO nami_media (id, platform, post_id, author, url, file_path, file_size, sha256, downloaded_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+    )?;
+
+    let mut stack = vec![(base_dir.to_path_buf(), 0)];
+    while let Some((dir, depth)) = stack.pop() {
+        if depth > 4 {
+            continue;
+        }
+        let entries = match fs::read_dir(&dir) {
+            Ok(e) => e,
+            Err(_) => continue,
+        };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                stack.push((path, depth + 1));
+            } else if path.is_file() {
+                let ext = path
+                    .extension()
+                    .and_then(|e| e.to_str())
+                    .unwrap_or("")
+                    .to_lowercase();
+                if matches!(
+                    ext.as_str(),
+                    "jpg" | "jpeg" | "png" | "webp" | "gif" | "mp4" | "mov" | "webm"
+                ) {
+                    let path_str = path.to_string_lossy().to_string();
+                    if !exists_stmt.exists(params![&path_str])? {
+                        let meta = fs::metadata(&path).ok();
+                        let size = meta.as_ref().map(|m| m.len() as i64);
+                        let downloaded_at = meta
+                            .as_ref()
+                            .and_then(|m| m.modified().ok())
+                            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                            .map(|d| d.as_secs() as i64)
+                            .unwrap_or_else(|| chrono::Utc::now().timestamp());
+
+                        let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+                        let stem = path
+                            .file_stem()
+                            .and_then(|s| s.to_str())
+                            .unwrap_or(file_name);
+                        let post_id = stem
+                            .split(['_', '-', ' '])
+                            .last()
+                            .unwrap_or(stem)
+                            .to_string();
+
+                        let mut platform = "nami".to_string();
+                        let mut author = None;
+
+                        if let Ok(rel) = path.strip_prefix(base_dir) {
+                            let comps: Vec<_> = rel
+                                .components()
+                                .map(|c| c.as_os_str().to_string_lossy().to_string())
+                                .collect();
+                            if comps.len() >= 2 {
+                                platform = comps[0].clone();
+                                author = Some(comps[1].clone());
+                            } else if comps.len() == 1 {
+                                platform = comps[0].clone();
+                            }
+                        }
+
+                        let id = format!("{}_{}", platform.to_lowercase(), stem);
+                        insert_stmt.execute(params![
+                            id,
+                            platform.to_lowercase(),
+                            post_id,
+                            author,
+                            "",
+                            path_str,
+                            size,
+                            Option::<String>::None,
+                            downloaded_at,
+                        ])?;
+                        added += 1;
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(added)
+}
+
 pub fn reconcile_disk_on(conn: &Connection) -> rusqlite::Result<ReconcileResult> {
     init_schema_on(conn)?;
     let mut stmt = conn.prepare_cached("SELECT id, file_path FROM nami_media")?;
@@ -154,10 +251,8 @@ pub fn reconcile_disk_on(conn: &Connection) -> rusqlite::Result<ReconcileResult>
         let (id, file_path) = row?;
         checked += 1;
         let p = Path::new(&file_path);
-        if let Some(parent) = p.parent() {
-            if parent.exists() && !p.exists() {
-                to_delete.push(id);
-            }
+        if !p.exists() {
+            to_delete.push(id);
         }
     }
 
@@ -165,6 +260,27 @@ pub fn reconcile_disk_on(conn: &Connection) -> rusqlite::Result<ReconcileResult>
     for id in to_delete {
         conn.execute("DELETE FROM nami_media WHERE id = ?1", params![id])?;
     }
+
+    let mut candidate_dirs = Vec::new();
+    if let Some(down) = dirs::download_dir() {
+        candidate_dirs.push(down.join("Nami"));
+    }
+    if let Ok(home) = std::env::var("HOME").or_else(|_| std::env::var("USERPROFILE")) {
+        let p = PathBuf::from(home).join("Downloads").join("Nami");
+        if !candidate_dirs.contains(&p) {
+            candidate_dirs.push(p);
+        }
+    }
+
+    let mut added = 0;
+    for dir in candidate_dirs {
+        if dir.exists() {
+            if let Ok(n) = scan_and_index_nami_dir(conn, &dir) {
+                added += n;
+            }
+        }
+    }
+    checked += added;
 
     Ok(ReconcileResult { checked, removed })
 }

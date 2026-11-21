@@ -621,19 +621,49 @@ fn run_process_stream(
         let download_id = reg.id.clone();
         let files_downloaded = files_downloaded.clone();
         let stage_label = stage_label.to_string();
+        let numeric_queue_id: Option<u64> = download_id
+            .chars()
+            .filter(|c| c.is_ascii_digit())
+            .collect::<String>()
+            .parse::<u64>()
+            .ok();
         thread::spawn(move || {
             let reader = BufReader::new(stdout);
             for line in reader.lines().map_while(Result::ok) {
+                let trimmed_line = line.trim();
+                if !trimmed_line.is_empty() {
+                    crate::core::flight_recorder::record(trimmed_line);
+                    if let Some(qid) = numeric_queue_id {
+                        let should_emit = crate::core::download_log::push_line(qid, trimmed_line);
+                        if should_emit {
+                            let _ = tauri::Emitter::emit(
+                                &app,
+                                "download-log-update",
+                                serde_json::json!({ "id": qid, "line": trimmed_line }),
+                            );
+                        }
+                    }
+                }
+
                 if let Some(pos) = line.find("FILE_OK:") {
-                    let filename = line[pos + "FILE_OK:".len()..].trim();
+                    let raw_target = line[pos + "FILE_OK:".len()..].trim();
                     let count = files_downloaded.fetch_add(1, Ordering::SeqCst) + 1;
                     if let Some((ref dest, ref plat, ref author, ref page_url)) = target_context {
-                        let full_path = dest.join(filename);
+                        let candidate = PathBuf::from(raw_target);
+                        let full_path = if candidate.is_absolute() {
+                            candidate
+                        } else {
+                            dest.join(&candidate)
+                        };
+                        let file_name = full_path
+                            .file_name()
+                            .and_then(|n| n.to_str())
+                            .unwrap_or(raw_target);
                         let size = fs::metadata(&full_path).ok().map(|m| m.len());
-                        let stem = Path::new(filename)
+                        let stem = Path::new(file_name)
                             .file_stem()
                             .and_then(|s| s.to_str())
-                            .unwrap_or(filename);
+                            .unwrap_or(file_name);
                         let post_id = stem
                             .split(['_', '-', ' '])
                             .last()
@@ -652,10 +682,14 @@ fn run_process_stream(
                         };
                         let _ = crate::commands::nami::ledger::record_media(&record);
                     }
+                    let short_name = Path::new(raw_target)
+                        .file_name()
+                        .and_then(|n| n.to_str())
+                        .unwrap_or(raw_target);
                     let _ = app.emit(
                         &format!("download_{}", download_id),
                         DownloadProgress {
-                            message: format!("Downloaded: {}", filename),
+                            message: format!("Downloaded: {}", short_name),
                             files_downloaded: base_count + count,
                             stage: Some(stage_label.clone()),
                             stage_index: Some(stage_index),
@@ -718,12 +752,29 @@ fn run_process_stream(
         let files_downloaded = files_downloaded.clone();
         let stderr_tail = stderr_tail.clone();
         let stage_label = stage_label.to_string();
+        let numeric_queue_id: Option<u64> = download_id
+            .chars()
+            .filter(|c| c.is_ascii_digit())
+            .collect::<String>()
+            .parse::<u64>()
+            .ok();
         thread::spawn(move || {
             let reader = BufReader::new(stderr);
             for line in reader.lines().map_while(Result::ok) {
                 let trimmed = line.trim();
                 if trimmed.is_empty() {
                     continue;
+                }
+                crate::core::flight_recorder::record(trimmed);
+                if let Some(qid) = numeric_queue_id {
+                    let should_emit = crate::core::download_log::push_line(qid, trimmed);
+                    if should_emit {
+                        let _ = tauri::Emitter::emit(
+                            &app,
+                            "download-log-update",
+                            serde_json::json!({ "id": qid, "line": trimmed }),
+                        );
+                    }
                 }
                 {
                     let mut tail = stderr_tail.lock().unwrap_or_else(|p| p.into_inner());

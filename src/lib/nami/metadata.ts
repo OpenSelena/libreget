@@ -31,8 +31,57 @@ export function formatCount(countStr: string): string {
   return `${num}${unit}`;
 }
 
+const memoryCache = new Map<string, { meta: CreatorMetadata; time: number }>();
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
+function getCacheKey(platform: string, target: string): string {
+  return `${platform.toLowerCase()}:${target.toLowerCase().trim()}`;
+}
+
+export function getCachedCreator(platform: string, target: string): CreatorMetadata | null {
+  if (!platform || !target) return null;
+  const key = getCacheKey(platform, target);
+  const mem = memoryCache.get(key);
+  if (mem && Date.now() - mem.time < CACHE_TTL_MS) {
+    return mem.meta;
+  }
+
+  if (typeof localStorage !== 'undefined') {
+    try {
+      const raw = localStorage.getItem(`nami_creator_${key}`);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.meta && Date.now() - parsed.time < CACHE_TTL_MS) {
+          memoryCache.set(key, parsed);
+          return parsed.meta;
+        }
+      }
+    } catch {}
+  }
+  return null;
+}
+
+export function setCachedCreator(platform: string, target: string, meta: CreatorMetadata): void {
+  if (!platform || !target || !meta) return;
+  const key = getCacheKey(platform, target);
+  const entry = { meta, time: Date.now() };
+  memoryCache.set(key, entry);
+
+  if (typeof localStorage !== 'undefined') {
+    try {
+      localStorage.setItem(`nami_creator_${key}`, JSON.stringify(entry));
+    } catch {}
+  }
+}
+
 export async function resolveCreatorMetadata(p: ParsedProfile): Promise<CreatorMetadata | null> {
   if (!p.username && !p.cleanUrl) return null;
+
+  const target = p.username || p.cleanUrl;
+  const cached = getCachedCreator(p.platform, target);
+  if (cached && cached.avatar) {
+    return cached;
+  }
 
   const platformLabels: Record<string, string> = {
     instagram: 'Instagram',
@@ -156,7 +205,7 @@ export async function resolveCreatorMetadata(p: ParsedProfile): Promise<CreatorM
     }
   }
 
-  return {
+  const resolved: CreatorMetadata = {
     platform: p.platform,
     platformName: platName,
     name,
@@ -165,4 +214,10 @@ export async function resolveCreatorMetadata(p: ParsedProfile): Promise<CreatorM
     avatar,
     url: p.cleanUrl,
   };
+
+  if (avatar) {
+    setCachedCreator(p.platform, target, resolved);
+  }
+
+  return resolved;
 }

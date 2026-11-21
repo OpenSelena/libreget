@@ -10,6 +10,8 @@
   } from '$lib/api/nami';
   import { showToast } from '$lib/stores/toast-store.svelte';
   import { t } from '$lib/i18n';
+  import { getCachedCreator, resolveCreatorMetadata } from '$lib/nami/metadata';
+  import { parseProfileUrl } from '$lib/utils/nami_parser';
 
   interface Props {
     onSelectProfileForDownload?: (url: string) => void;
@@ -32,8 +34,29 @@
   let syncingProfileUrl = $state<string | null>(null);
   let syncingAll = $state(false);
   let syncFeedback = $state<string | null>(null);
+  let profileAvatars = $state<Record<string, string>>({});
 
   let requestId = 0;
+
+  function warmProfilesAvatars(list: Profile[]) {
+    list.forEach(async (profile) => {
+      const target = profile.username || profile.url;
+      const cached = getCachedCreator(profile.platform || activePlatform, target);
+      if (cached?.avatar) {
+        profileAvatars[profile.url] = cached.avatar;
+      } else {
+        const parsed = parseProfileUrl(profile.url);
+        if (parsed.platform !== 'unknown' && parsed.cleanUrl) {
+          try {
+            const meta = await resolveCreatorMetadata(parsed);
+            if (meta?.avatar) {
+              profileAvatars[profile.url] = meta.avatar;
+            }
+          } catch {}
+        }
+      }
+    });
+  }
 
   async function loadPlatformProfiles(targetPlatform = activePlatform) {
     const thisRequest = ++requestId;
@@ -43,6 +66,7 @@
       const result = await loadProfiles(targetPlatform);
       if (thisRequest !== requestId) return;
       profiles = result;
+      warmProfilesAvatars(result);
     } catch (err) {
       if (thisRequest !== requestId) return;
       error = $t('nami.failed_to_load_profiles') as string;
@@ -255,9 +279,20 @@
             if (e.key === 'Enter') onSelectProfileForDownload?.(profile.url);
           }}
         >
-          <div class="pm-initials-badge" data-platform={activePlatform}>
-            <span>{(profile.username || profile.platform || '?').slice(0, 2).toUpperCase()}</span>
-          </div>
+          {#if profileAvatars[profile.url] || getCachedCreator(profile.platform || activePlatform, profile.username || profile.url)?.avatar}
+            <img
+              src={profileAvatars[profile.url] || getCachedCreator(profile.platform || activePlatform, profile.username || profile.url)?.avatar}
+              alt={profile.username || profile.platform}
+              class="pm-avatar-thumb"
+              onerror={() => {
+                delete profileAvatars[profile.url];
+              }}
+            />
+          {:else}
+            <div class="pm-initials-badge" data-platform={activePlatform}>
+              <span>{(profile.username || profile.platform || '?').slice(0, 2).toUpperCase()}</span>
+            </div>
+          {/if}
 
           <span class="list-row-content">
             <span class="list-row-title">{profile.username || profile.url}</span>
@@ -355,6 +390,14 @@
     display: flex;
     align-items: center;
     gap: var(--space-2);
+  }
+
+  .pm-avatar-thumb {
+    width: 34px;
+    height: 34px;
+    border-radius: var(--radius-sm);
+    object-fit: cover;
+    flex-shrink: 0;
   }
 
   .pm-initials-badge {
