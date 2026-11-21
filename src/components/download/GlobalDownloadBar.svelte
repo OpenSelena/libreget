@@ -25,6 +25,14 @@
     activeItems.length > 0 && page.url.pathname !== "/downloads",
   );
 
+  const hasIndeterminate = $derived(
+    activeItems.some(
+      (item) =>
+        item.status === "downloading" &&
+        (item.percent <= 0 || item.queueKind === "image"),
+    ),
+  );
+
   const avgPercent = $derived.by(() => {
     if (activeItems.length === 0) return 0;
     let sum = 0;
@@ -106,7 +114,11 @@
 {#if visible}
   <div class="global-download-dock" role="status" aria-live="polite">
     <div class="dock-progress-track" aria-hidden="true">
-      <div class="dock-progress-fill" style="width: {avgPercent.toFixed(1)}%"></div>
+      <div
+        class="dock-progress-fill"
+        class:indeterminate={hasIndeterminate && avgPercent <= 0}
+        style="width: {hasIndeterminate && avgPercent <= 0 ? '30%' : avgPercent.toFixed(1) + '%'}"
+      ></div>
     </div>
 
     <div class="dock-left">
@@ -122,7 +134,11 @@
 
     <div class="dock-right">
       <span class="dock-metrics">
-        <strong>{Math.round(avgPercent)}%</strong>
+        {#if hasIndeterminate && avgPercent <= 0}
+          <strong>&hellip;</strong>
+        {:else}
+          <strong>{Math.round(avgPercent)}%</strong>
+        {/if}
         <span class="dock-sep">&middot;</span>
         <span>{bytesSummary}</span>
         <span class="dock-speed">{formatSpeed(totalSpeed)}</span>
@@ -185,6 +201,23 @@
     height: 100%;
     background: var(--accent);
     transition: width var(--duration-base) var(--ease-out);
+  }
+
+  .dock-progress-fill.indeterminate {
+    width: 30% !important;
+    animation: dock-indeterminate 1.4s ease-in-out infinite;
+  }
+
+  @keyframes dock-indeterminate {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(340%); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dock-progress-fill.indeterminate {
+      animation: none;
+      width: 15% !important;
+    }
   }
 
   .dock-left {

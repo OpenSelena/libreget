@@ -5,6 +5,8 @@ use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
+use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
 use std::str::FromStr;
 use std::time::Duration;
 use tauri::command;
@@ -303,6 +305,103 @@ pub async fn nami_cache_avatar(url: String) -> Result<CachedAvatar, String> {
         file_path: target_path.to_string_lossy().to_string(),
         data_url,
     })
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ResolvedProfileAvatar {
+    pub data_url: String,
+    pub name: Option<String>,
+}
+
+#[command]
+pub async fn nami_resolve_facebook_avatar(
+    url: String,
+) -> Result<Option<ResolvedProfileAvatar>, String> {
+    let clean = url.trim().trim_end_matches('/');
+    if clean.is_empty() {
+        return Ok(None);
+    }
+
+    let target_url = if clean.ends_with("/avatar") {
+        clean.to_string()
+    } else {
+        format!("{}/avatar", clean)
+    };
+
+    let app_dir = crate::commands::nami::libreget_nami_dir().unwrap_or_else(|_| PathBuf::from("."));
+    let gallery_bin = crate::commands::nami::fetcher::resolve_gallery_dl(&app_dir);
+
+    if let Some(bin) = gallery_bin {
+        let mut cmd = Command::new(&bin);
+        cmd.args(["-j", &target_url, "--range", "1"]);
+        cmd.stdin(Stdio::null());
+        cmd.stdout(Stdio::piped());
+        cmd.stderr(Stdio::null());
+
+        #[cfg(target_os = "windows")]
+        {
+            use std::os::windows::process::CommandExt;
+            cmd.creation_flags(0x08000000);
+        }
+
+        if let Ok(output) = cmd.output() {
+            if output.status.success() {
+                let stdout_str = String::from_utf8_lossy(&output.stdout);
+                if let Ok(json_val) = serde_json::from_str::<serde_json::Value>(&stdout_str) {
+                    let mut author_name: Option<String> = None;
+                    let mut direct_image_url: Option<String> = None;
+
+                    if let Some(arr) = json_val.as_array() {
+                        for item in arr {
+                            if let Some(sub_arr) = item.as_array() {
+                                if sub_arr.len() >= 2 && sub_arr[0] == 2 {
+                                    if let Some(obj) = sub_arr[1].as_object() {
+                                        if let Some(u) =
+                                            obj.get("username").and_then(|v| v.as_str())
+                                        {
+                                            if !u.is_empty() {
+                                                author_name = Some(u.to_string());
+                                            }
+                                        }
+                                    }
+                                } else if sub_arr.len() >= 3 && sub_arr[0] == 3 {
+                                    if let Some(img_url) = sub_arr[1].as_str() {
+                                        if img_url.starts_with("http") {
+                                            direct_image_url = Some(img_url.to_string());
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if let Some(img_url) = direct_image_url {
+                        if let Ok(cached) = nami_cache_avatar(img_url).await {
+                            return Ok(Some(ResolvedProfileAvatar {
+                                data_url: cached.data_url,
+                                name: author_name,
+                            }));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Fallback: Check Graph API for public Pages
+    let clean_user = clean.rsplit('/').next().unwrap_or(clean);
+    let graph_url = format!(
+        "https://graph.facebook.com/{}/picture?type=large",
+        clean_user
+    );
+    if let Ok(cached) = nami_cache_avatar(graph_url).await {
+        return Ok(Some(ResolvedProfileAvatar {
+            data_url: cached.data_url,
+            name: None,
+        }));
+    }
+
+    Ok(None)
 }
 
 #[cfg(test)]

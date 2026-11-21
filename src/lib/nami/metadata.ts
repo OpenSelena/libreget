@@ -1,4 +1,4 @@
-import { httpFetch, cacheAvatar } from '$lib/api/nami';
+import { httpFetch, cacheAvatar, resolveFacebookAvatar } from '$lib/api/nami';
 import type { ParsedProfile } from '$lib/utils/nami_parser';
 
 export interface CreatorMetadata {
@@ -188,42 +188,55 @@ export async function resolveCreatorMetadata(p: ParsedProfile): Promise<CreatorM
   } else if (p.platform === 'facebook' && (p.username || p.cleanUrl)) {
     try {
       const fbTarget = p.username ? `https://www.facebook.com/${encodeURIComponent(p.username)}` : p.cleanUrl;
-      const res = await httpFetch({
-        url: fbTarget,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
-          'Accept-Language': 'en-US,en;q=0.9',
-        },
-        timeout_ms: 6000,
-      });
-
-      if (res.ok && res.body) {
-        const html = res.body;
-        const imgMatch = html.match(/property="og:image"\s+content="([^"]+)"/) || html.match(/content="([^"]+)"\s+property="og:image"/);
-        const titleMatch = html.match(/property="og:title"\s+content="([^"]+)"/) || html.match(/content="([^"]+)"\s+property="og:title"/);
-        const descMatch = html.match(/property="og:description"\s+content="([^"]+)"/) || html.match(/content="([^"]+)"\s+property="og:description"/);
-
-        if (imgMatch) {
-          avatar = decodeHtmlEntities(imgMatch[1]);
+      const fbResolved = await resolveFacebookAvatar(fbTarget);
+      if (fbResolved?.data_url) {
+        avatar = fbResolved.data_url;
+        if (fbResolved.name) {
+          name = fbResolved.name;
         }
+      }
 
-        if (titleMatch) {
-          const rawTitle = decodeHtmlEntities(titleMatch[1]);
-          const cleanedTitle = rawTitle.replace(/\s*\|\s*Facebook$/i, '').trim();
-          if (cleanedTitle) {
-            name = cleanedTitle;
+      if (!avatar) {
+        const res = await httpFetch({
+          url: fbTarget,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+            'Accept-Language': 'en-US,en;q=0.9',
+          },
+          timeout_ms: 6000,
+        });
+
+        if (res.ok && res.body) {
+          const html = res.body;
+          const imgMatch = html.match(/property="og:image"\s+content="([^"]+)"/) || html.match(/content="([^"]+)"\s+property="og:image"/);
+          const titleMatch = html.match(/property="og:title"\s+content="([^"]+)"/) || html.match(/content="([^"]+)"\s+property="og:title"/);
+          const descMatch = html.match(/property="og:description"\s+content="([^"]+)"/) || html.match(/content="([^"]+)"\s+property="og:description"/);
+
+          if (imgMatch) {
+            const rawImg = decodeHtmlEntities(imgMatch[1]);
+            if (!rawImg.includes('lookaside.fbsbx.com')) {
+              avatar = rawImg;
+            }
           }
-        }
 
-        if (descMatch) {
-          const rawDesc = decodeHtmlEntities(descMatch[1]);
-          const followersMatch = rawDesc.match(/([\d.,]+[KkMmBb]?)\s*followers/i);
-          const parts = [
-            handle,
-            'Facebook',
-            followersMatch ? `${followersMatch[1]} followers` : '',
-          ].filter(Boolean);
-          meta = parts.join(' • ');
+          if (titleMatch && !name) {
+            const rawTitle = decodeHtmlEntities(titleMatch[1]);
+            const cleanedTitle = rawTitle.replace(/\s*\|\s*Facebook$/i, '').trim();
+            if (cleanedTitle) {
+              name = cleanedTitle;
+            }
+          }
+
+          if (descMatch) {
+            const rawDesc = decodeHtmlEntities(descMatch[1]);
+            const followersMatch = rawDesc.match(/([\d.,]+[KkMmBb]?)\s*followers/i);
+            const parts = [
+              handle,
+              'Facebook',
+              followersMatch ? `${followersMatch[1]} followers` : '',
+            ].filter(Boolean);
+            meta = parts.join(' • ');
+          }
         }
       }
     } catch {

@@ -1299,6 +1299,7 @@ pub fn run() {
             commands::nami::nami_check_python_dependencies,
             commands::nami::http::nami_http_fetch,
             commands::nami::http::nami_cache_avatar,
+            commands::nami::http::nami_resolve_facebook_avatar,
             commands::nami::nami_run_gallery_dl_download,
             commands::nami::nami_cancel_download,
             commands::nami::nami_save_app_settings,

@@ -83,6 +83,31 @@ pub fn resolve_gallery_dl(app_data_dir: &Path) -> Option<PathBuf> {
         return Some(p);
     }
 
+    #[cfg(unix)]
+    {
+        let common = [
+            PathBuf::from("/home/linuxbrew/.linuxbrew/bin/gallery-dl"),
+            PathBuf::from("/usr/local/bin/gallery-dl"),
+            PathBuf::from("/usr/bin/gallery-dl"),
+        ];
+        for p in &common {
+            if p.exists() {
+                return Some(p.clone());
+            }
+        }
+        if let Some(h) = dirs::home_dir() {
+            let user_bins = [
+                h.join(".linuxbrew/bin/gallery-dl"),
+                h.join(".local/bin/gallery-dl"),
+            ];
+            for p in &user_bins {
+                if p.exists() {
+                    return Some(p.clone());
+                }
+            }
+        }
+    }
+
     None
 }
 
@@ -99,6 +124,28 @@ pub fn resolve_yt_dlp(app_data_dir: &Path) -> Option<PathBuf> {
 
     if let Ok(p) = which::which("yt-dlp") {
         return Some(p);
+    }
+
+    #[cfg(unix)]
+    {
+        let common = [
+            PathBuf::from("/home/linuxbrew/.linuxbrew/bin/yt-dlp"),
+            PathBuf::from("/usr/local/bin/yt-dlp"),
+            PathBuf::from("/usr/bin/yt-dlp"),
+        ];
+        for p in &common {
+            if p.exists() {
+                return Some(p.clone());
+            }
+        }
+        if let Some(h) = dirs::home_dir() {
+            let user_bins = [h.join(".linuxbrew/bin/yt-dlp"), h.join(".local/bin/yt-dlp")];
+            for p in &user_bins {
+                if p.exists() {
+                    return Some(p.clone());
+                }
+            }
+        }
     }
 
     None

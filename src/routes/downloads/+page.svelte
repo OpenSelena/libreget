@@ -38,6 +38,7 @@
   import { locale as i18nLocale } from "$lib/i18n";
   import { get } from "svelte/store";
   import timeAgo from "$lib/time-ago";
+  import { stopDownload as stopNamiDownload } from "$lib/stores/nami_download_store.svelte";
 
 
 
@@ -226,10 +227,16 @@
   }
 
   async function cancelGenericDownload(id: number) {
+    markGenericComplete(id, false, "Download cancelled");
     try {
       await invoke("cancel_generic_download", { downloadId: id });
     } catch {
-      markGenericComplete(id, false, "Download cancelled");
+      // Marked locally
+    }
+    try {
+      await stopNamiDownload(String(id));
+    } catch {
+      // Ignore if not a nami task
     }
   }
 

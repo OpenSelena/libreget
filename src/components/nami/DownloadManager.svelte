@@ -160,19 +160,9 @@
     }
   }
 
-  let addedNoticeActive = $state(false);
-  let addedNoticeTimer: ReturnType<typeof setTimeout> | null = null;
-
-  onDestroy(() => {
-    if (addedNoticeTimer) {
-      clearTimeout(addedNoticeTimer);
-    }
-  });
-
   function handleUrlChange(val: string) {
     url = val;
     avatarError = false;
-    addedNoticeActive = false;
     const trimmed = val.trim();
 
     if (!trimmed) {
@@ -298,6 +288,36 @@
     handleUrlChange(profileUrl);
   }
 
+  async function triggerDownloadForProfile(p: Profile & { _platformLabel?: string }) {
+    if (missingOutputDir) {
+      showToast('error', 'Output directory is not set. Please configure in Settings.');
+      return;
+    }
+    const cached = getCachedCreator(p.platform, p.username || p.url);
+    const creatorMeta = cached
+      ? {
+          name: cached.name,
+          handle: cached.handle,
+          avatar: cached.avatar,
+          platform: cached.platform,
+          platformName: cached.platformName,
+        }
+      : {
+          name: p.username || p.url,
+          handle: p.username ? `@${p.username}` : p.url,
+          platform: p.platform,
+          platformName: p._platformLabel || p.platform,
+        };
+
+    try {
+      void startStoreDownload(p.url, outputDir, cookiesFile, contentType, creatorMeta);
+      showToast('info', `Added ${p.username || p.url} to downloads`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      showToast('error', `Failed to start download: ${msg}`);
+    }
+  }
+
   async function startDownload() {
     const downloadUrl = currentCreator?.url || url.trim();
     if (!downloadUrl || missingOutputDir || needsCookiesWarning || platformMismatch) {
@@ -308,14 +328,10 @@
 
     try {
       void startStoreDownload(downloadUrl, outputDir, cookiesFile, contentType, creatorSnapshot);
+      showToast('info', $t('librebox.added_to_downloads') || 'Added to downloads');
       url = '';
       currentCreator = null;
       setDraft({ url: '', contentType, selectedProfileUrl: null });
-      addedNoticeActive = true;
-      if (addedNoticeTimer) clearTimeout(addedNoticeTimer);
-      addedNoticeTimer = setTimeout(() => {
-        addedNoticeActive = false;
-      }, 5000);
     } catch (error) {
       console.error('Failed to start download:', error);
     }
@@ -425,86 +441,10 @@
     </div>
   {/if}
 
-  <!-- Added to Downloads Feedback Notice (Exact LibreGet / Demo match) -->
-  {#if addedNoticeActive}
-    <div class="feedback feedback-enter added-notice">
-      <strong class="added-notice-title">{$t('librebox.added_to_downloads')}</strong>
-      <button type="button" class="added-notice-link" onclick={() => goto("/downloads")}>
-        {$t('librebox.open_downloads')} &rarr;
-      </button>
-    </div>
-  {/if}
-
-  {#if downloading}
-    <div class="active-download-bar">
-      <div class="active-download-info">
-        <span class="active-download-pulse"></span>
-        <div class="active-download-text">
-          <span class="active-download-title">{stage ? namiStageLabel(stage, tr) : 'Archiving media...'}</span>
-          <span class="active-download-sub">
-            {#if filesDownloaded > 0}
-              {filesDownloaded} file{filesDownloaded === 1 ? '' : 's'} downloaded
-            {:else if lastMessage}
-              {lastMessage}
-            {:else}
-              Download in progress...
-            {/if}
-          </span>
-        </div>
-      </div>
-      <div class="active-download-actions">
-        <button
-          type="button"
-          class="btn btn-sm active-stop-btn"
-          onclick={handleStop}
-          disabled={cancelling}
-          aria-label="Stop download"
-        >
-          {#if cancelling}
-            <span>Stopping...</span>
-          {:else}
-            <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor">
-              <rect x="6" y="6" width="12" height="12" rx="1" />
-            </svg>
-            <span>Stop</span>
-          {/if}
-        </button>
-        <button
-          type="button"
-          class="btn btn-sm btn-ghost"
-          onclick={() => goto('/downloads')}
-        >
-          Downloads &rarr;
-        </button>
-      </div>
-    </div>
-  {/if}
-
-  <!-- Alerts / Notices -->
+  <!-- Dependency Notice if missing -->
   {#if depStatus && !depStatus.ok}
     <div class="notice notice-danger" role="alert">
       <span>{namiStatusMessage(depStatus.message, tr)}</span>
-    </div>
-  {/if}
-
-  {#if status && !status.includes('Starting') && !status.includes('Switching to')}
-    <div
-      class="notice"
-      class:notice-success={statusType === 'success'}
-      class:notice-danger={statusType === 'error'}
-      class:notice-info={statusType === 'info'}
-      role={statusType === 'error' ? 'alert' : 'status'}
-    >
-      <div class="notice-body">
-        <span class="notice-title">{namiStatusMessage(status, tr)}</span>
-        {#if statusDetail}
-          <details style="margin-top: 4px;">
-            <summary style="cursor: pointer; font-size: 11px;">View Log</summary>
-            <pre style="margin-top: 4px; font-size: 11px; max-height: 120px; overflow-y: auto;">{statusDetail}</pre>
-          </details>
-        {/if}
-      </div>
-      <button type="button" class="btn btn-sm btn-ghost" onclick={clearStatus}>×</button>
     </div>
   {/if}
 
@@ -664,7 +604,7 @@
                   class="btn btn-sm btn-secondary"
                   onclick={(e) => {
                     e.stopPropagation();
-                    loadProfileDirectly(profile.url);
+                    triggerDownloadForProfile(profile);
                   }}
                 >
                   Download
@@ -869,32 +809,6 @@
     font-weight: 500;
   }
 
-  .added-notice {
-    gap: var(--space-2);
-    font-size: var(--text-sm);
-  }
-
-  .added-notice-title {
-    font-weight: 600;
-    color: var(--text);
-  }
-
-  .added-notice-link {
-    background: none;
-    border: none;
-    padding: 0;
-    font: inherit;
-    font-size: var(--text-sm);
-    font-weight: 600;
-    color: var(--accent-hi);
-    cursor: pointer;
-  }
-
-  .added-notice-link:hover {
-    text-decoration: underline;
-    text-underline-offset: 2px;
-  }
-
   .feedback-enter {
     animation: feedbackEnter var(--duration-base) var(--ease-out);
   }
@@ -1080,81 +994,6 @@
     color: #ffffff;
     box-shadow: 0 4px 14px rgba(255, 59, 48, 0.35);
   }
-
-  .active-download-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-3);
-    padding: var(--space-3) var(--space-4);
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-sm);
-  }
-
-  .active-download-info {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    min-width: 0;
-  }
-
-  .active-download-pulse {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: var(--accent);
-    box-shadow: 0 0 8px var(--accent);
-    animation: active-pulse 1.4s ease-in-out infinite;
-    flex-shrink: 0;
-  }
-
-  @keyframes active-pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.4; transform: scale(0.85); }
-  }
-
-  .active-download-text {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-  }
-
-  .active-download-title {
-    font-size: var(--text-sm);
-    font-weight: 600;
-    color: var(--text);
-  }
-
-  .active-download-sub {
-    font-size: var(--text-xs);
-    color: var(--text-muted);
-  }
-
-  .active-download-actions {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    flex-shrink: 0;
-  }
-
-  .active-stop-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: color-mix(in srgb, var(--danger, #ff3b30) 15%, transparent);
-    color: var(--danger, #ff3b30);
-    border: 1px solid color-mix(in srgb, var(--danger, #ff3b30) 30%, transparent);
-  }
-
-  .active-stop-btn:hover:not(:disabled) {
-    background: var(--danger, #ff3b30);
-    color: #ffffff;
-  }
-
-
 
   /* Saved Profiles Section */
   .saved-profiles-section {

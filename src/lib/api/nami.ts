@@ -6,6 +6,20 @@ export interface CachedAvatar {
   data_url: string;
 }
 
+export interface ResolvedProfileAvatar {
+  data_url: string;
+  name?: string;
+}
+
+export async function resolveFacebookAvatar(url: string): Promise<ResolvedProfileAvatar | null> {
+  if (!url || typeof url !== 'string') return null;
+  try {
+    return await invoke<ResolvedProfileAvatar | null>('nami_resolve_facebook_avatar', { url });
+  } catch {
+    return null;
+  }
+}
+
 export async function cacheAvatar(url: string): Promise<string> {
   if (!url || typeof url !== 'string') return '';
   const trimmed = url.trim();
