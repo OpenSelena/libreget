@@ -71,6 +71,7 @@ export type GenericDownloadItem = BaseItem & {
   etaSeconds?: number | null;
   filePath?: string;
   fileCount?: number;
+  canPause?: boolean;
   thumbnail_url?: string | null;
   quality?: string | null;
   downloadMode?: string | null;
@@ -90,6 +91,7 @@ export type GenericProgressExtra = {
   fragmentIndex?: number | null;
   fragmentCount?: number | null;
   plannedFormats?: string[] | null;
+  fileCount?: number | null;
 };
 
 export type DownloadItem = CourseDownloadItem | GenericDownloadItem;
@@ -432,6 +434,7 @@ export function registerGenericDownload(
   thumbnail_url?: string | null,
   author?: string | null,
   queueKind?: QueueKind,
+  canPause?: boolean,
 ) {
   const now = Date.now();
   downloads.set(id, {
@@ -450,6 +453,7 @@ export function registerGenericDownload(
     thumbnail_url: thumbnail_url ?? null,
     author: author ?? null,
     queueKind: queueKind ?? "image",
+    canPause: canPause ?? (queueKind !== "image" && queueKind !== "generic"),
   });
   flushNow();
 }
@@ -515,6 +519,7 @@ export function upsertGenericProgress(
     fragmentIndex: extra?.fragmentIndex ?? prev?.fragmentIndex ?? null,
     fragmentCount: extra?.fragmentCount ?? prev?.fragmentCount ?? null,
     plannedFormats: extra?.plannedFormats ?? prev?.plannedFormats ?? null,
+    fileCount: extra?.fileCount !== undefined ? (extra.fileCount ?? undefined) : prev?.fileCount,
   });
 
   if (resolvedStatus === "downloading") {

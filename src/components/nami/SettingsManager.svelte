@@ -59,6 +59,10 @@
         directory: false,
         multiple: false,
         title: 'Select Netscape Cookies File',
+        filters: [
+          { name: 'Netscape Cookies (*.txt, *.cookies)', extensions: ['txt', 'cookies'] },
+          { name: 'All Files (*.*)', extensions: ['*'] },
+        ],
       });
       if (selected && typeof selected === 'string') {
         cookiesFile = selected;

@@ -256,6 +256,8 @@
 
   function clearUrl() {
     url = '';
+    selectedProfileUrl = null;
+    currentCreator = null;
     handleUrlChange('');
     urlInputEl?.focus();
   }
@@ -366,6 +368,7 @@
       <button
         type="button"
         class="clear-btn"
+        onmousedown={(e) => e.preventDefault()}
         onclick={clearUrl}
         title="Clear URL"
         aria-label="Clear URL"
@@ -474,6 +477,7 @@
                 class="preview-thumbnail"
                 src={currentCreator.avatar}
                 alt={currentCreator.name}
+                referrerpolicy="no-referrer"
                 onerror={() => (avatarError = true)}
               />
             {:else if isResolvingMeta}
@@ -567,6 +571,7 @@
                   src={profileAvatars[profile.url] || getCachedCreator(profile.platform, profile.username || profile.url)?.avatar}
                   alt={profile.username || profile.platform}
                   class="preview-avatar-thumb"
+                  referrerpolicy="no-referrer"
                   onerror={() => {
                     delete profileAvatars[profile.url];
                   }}
@@ -707,6 +712,10 @@
     color: var(--text-faint);
     cursor: pointer;
     flex-shrink: 0;
+  }
+
+  .clear-btn :global(svg) {
+    pointer-events: none;
   }
 
   .clear-btn:hover {

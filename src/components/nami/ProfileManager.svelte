@@ -116,9 +116,9 @@
   }
 
   function formatSynced(timestamp?: number | null): string {
-    if (!timestamp) return 'Never synced';
+    if (!timestamp) return 'Never downloaded';
     const d = new Date(timestamp * 1000);
-    return `Synced ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+    return `Downloaded ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
   }
 
   async function handlePull(profile: Profile) {
@@ -128,15 +128,15 @@
     try {
       const res = await pullCreator(profile.url, activePlatform);
       if (res.success) {
-        syncFeedback = `Synced ${res.files_downloaded} new files from ${profile.username || profile.url}`;
+        syncFeedback = `Downloaded ${res.files_downloaded} new files from ${profile.username || profile.url}`;
         showToast('success', syncFeedback);
         await loadPlatformProfiles();
       } else {
-        error = res.message || 'Sync failed';
+        error = res.message || 'Download failed';
         showToast('error', error);
       }
     } catch (err) {
-      error = errorMessage(err, 'Failed to sync profile');
+      error = errorMessage(err, 'Failed to download profile');
       showToast('error', error);
     } finally {
       syncingProfileUrl = null;
@@ -150,11 +150,11 @@
     error = '';
     try {
       const summary = await pullAllCreators(activePlatform);
-      syncFeedback = `Batch sync complete: ${summary.total_downloaded} files downloaded across ${summary.succeeded} creators`;
+      syncFeedback = `Batch download complete: ${summary.total_downloaded} files downloaded across ${summary.succeeded} creators`;
       showToast('success', syncFeedback);
       await loadPlatformProfiles();
     } catch (err) {
-      error = errorMessage(err, 'Failed to sync all creators');
+      error = errorMessage(err, 'Failed to download all creators');
       showToast('error', error);
     } finally {
       syncingAll = false;
@@ -247,12 +247,9 @@
         stroke-linejoin="round"
         class:spin={syncingAll}
       >
-        <path d="M1.5 8a6.5 6.5 0 0 1 11.1-4.6L14 5" />
-        <path d="M14 2v3h-3" />
-        <path d="M14.5 8a6.5 6.5 0 0 1-11.1 4.6L2 11" />
-        <path d="M2 14v-3h3" />
+        <path d="M8 1.5v8.5M4.5 6.5l3.5 3.5 3.5-3.5M2 13.5h12" />
       </svg>
-      <span>{syncingAll ? 'Syncing...' : 'Sync All'}</span>
+      <span>{syncingAll ? 'Downloading...' : 'Download All'}</span>
     </button>
   </div>
 
@@ -265,7 +262,7 @@
   {:else if profiles.length === 0}
     <div class="empty-state surface-card">
       <p class="empty-state-title">No profiles added for {activePlatform}</p>
-      <p class="empty-state-hint">Paste a username or profile URL above to track and sync creator updates.</p>
+      <p class="empty-state-hint">Paste a username or profile URL above to track and download creator media.</p>
     </div>
   {:else}
     <div class="surface-card">
@@ -284,6 +281,7 @@
               src={profileAvatars[profile.url] || getCachedCreator(profile.platform || activePlatform, profile.username || profile.url)?.avatar}
               alt={profile.username || profile.platform}
               class="pm-avatar-thumb"
+              referrerpolicy="no-referrer"
               onerror={() => {
                 delete profileAvatars[profile.url];
               }}
@@ -302,13 +300,13 @@
           <span class="list-row-trailing">
             <button
               type="button"
-              class="btn btn-sm btn-secondary"
+              class="btn btn-sm btn-primary"
               onclick={(e) => {
                 e.stopPropagation();
                 handlePull(profile);
               }}
               disabled={syncingProfileUrl === profile.url}
-              title="Sync latest creator updates"
+              title="Download creator updates"
             >
               <svg
                 viewBox="0 0 16 16"
@@ -319,26 +317,10 @@
                 stroke-width="1.5"
                 class:spin={syncingProfileUrl === profile.url}
               >
-                <path d="M1.5 8a6.5 6.5 0 0 1 11.1-4.6L14 5" />
-                <path d="M14 2v3h-3" />
-                <path d="M14.5 8a6.5 6.5 0 0 1-11.1 4.6L2 11" />
-                <path d="M2 14v-3h3" />
+                <path d="M8 1.5v8.5M4.5 6.5l3.5 3.5 3.5-3.5M2 13.5h12" />
               </svg>
-              <span>{syncingProfileUrl === profile.url ? 'Syncing...' : 'Sync'}</span>
+              <span>{syncingProfileUrl === profile.url ? 'Downloading...' : 'Download'}</span>
             </button>
-
-            {#if onSelectProfileForDownload}
-              <button
-                type="button"
-                class="btn btn-sm btn-primary"
-                onclick={(e) => {
-                  e.stopPropagation();
-                  onSelectProfileForDownload?.(profile.url);
-                }}
-              >
-                Download
-              </button>
-            {/if}
 
             <button
               type="button"

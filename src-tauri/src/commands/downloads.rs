@@ -1189,6 +1189,10 @@ pub async fn cancel_generic_download(
         emit_queue_state_from_state(&app, s);
         queue::try_start_next(app, state.download_queue.clone()).await;
         Ok("Download cancelled".to_string())
+    } else if crate::commands::nami::dispatcher::cancel_running_download(&download_id.to_string())
+        .is_ok()
+    {
+        Ok("Download cancelled".to_string())
     } else {
         Err("No active download for this ID".to_string())
     }
@@ -1753,6 +1757,9 @@ pub async fn reveal_file(path: String) -> Result<(), String> {
 #[cfg(not(target_os = "android"))]
 #[tauri::command]
 pub async fn open_path_default(path: String) -> Result<(), String> {
+    if !std::path::Path::new(&path).exists() {
+        return Err(format!("File or directory does not exist: {}", path));
+    }
     open::that_detached(&path).map_err(|e| e.to_string())
 }
 

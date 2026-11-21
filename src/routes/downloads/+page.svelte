@@ -836,7 +836,7 @@
             <span class="item-name" title={item.name}>{item.name}</span>
           </div>
           <div class="item-header-actions">
-            {#if item.status === "downloading"}
+            {#if item.status === "downloading" && item.canPause !== false && item.queueKind !== "image"}
               <button
                 class="action-icon-btn"
                 onclick={() => pauseDownload(item.id)}
@@ -1080,7 +1080,10 @@
           />
           {#if isTransferPhase(item.phase)}
             <div class="item-stats">
-              {#if item.downloadedBytes > 0}
+              {#if (item.fileCount ?? 0) > 0}
+                <span>{item.fileCount} {item.fileCount === 1 ? 'file' : 'files'}</span>
+                <span class="stats-sep">&middot;</span>
+              {:else if item.downloadedBytes > 0}
                 <span>{formatBytes(item.downloadedBytes)}{#if item.totalBytes}{" / "}{formatBytes(item.totalBytes)}{/if}</span>
                 <span class="stats-sep">&middot;</span>
               {/if}
@@ -1129,7 +1132,7 @@
               <div
                 class="progress-fill"
                 data-status={item.status}
-                class:indeterminate={item.status === "downloading" && item.percent <= 0 && !isTransferPhase(item.phase)}
+                class:indeterminate={item.status === "downloading" && item.percent <= 0 && (!isTransferPhase(item.phase) || item.queueKind === "image")}
                 style:width="{Math.max(0, item.percent).toFixed(1)}%"
               ></div>
             </div>

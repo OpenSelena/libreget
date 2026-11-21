@@ -216,14 +216,28 @@ pub fn nami_save_app_settings(
     Ok("Settings saved successfully".to_string())
 }
 
+fn default_nami_output_dir() -> Option<String> {
+    dirs::download_dir()
+        .map(|d| d.join("Nami").to_string_lossy().to_string())
+        .or_else(|| {
+            dirs::home_dir().map(|h| {
+                h.join("Downloads")
+                    .join("Nami")
+                    .to_string_lossy()
+                    .to_string()
+            })
+        })
+}
+
 #[command]
 pub fn nami_load_app_settings() -> Result<AppSettings, String> {
     let _storage_guard = NAMI_STORAGE_LOCK.lock().unwrap_or_else(|p| p.into_inner());
 
+    let default_out = default_nami_output_dir();
     let settings_file = libreget_nami_dir()?.join("app_settings.json");
     if !settings_file.exists() {
         return Ok(AppSettings {
-            output_directory: None,
+            output_directory: default_out,
             cookies_file: None,
             browser_cookies: None,
         });
@@ -231,8 +245,15 @@ pub fn nami_load_app_settings() -> Result<AppSettings, String> {
 
     let content = fs::read_to_string(&settings_file)
         .map_err(|e| format!("Failed to read settings: {}", e))?;
-    let settings: AppSettings =
+    let mut settings: AppSettings =
         serde_json::from_str(&content).map_err(|e| format!("Failed to parse settings: {}", e))?;
+    if settings
+        .output_directory
+        .as_ref()
+        .map_or(true, |d| d.trim().is_empty())
+    {
+        settings.output_directory = default_out;
+    }
     Ok(settings)
 }
 

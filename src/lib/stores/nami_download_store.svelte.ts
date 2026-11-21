@@ -130,16 +130,21 @@ function applyProgress(progressData: DownloadProgress) {
   }
 
   if (currentQueueId) {
+    const percent = stageTotal && stageTotal > 0 && stageIndex !== null
+      ? Math.round((stageIndex / stageTotal) * 100)
+      : 0;
+
     upsertGenericProgress(
       currentQueueId,
       currentTitle,
       currentPlatform,
+      percent,
       0,
       0,
-      filesDownloaded,
       null,
       progressData.message || "Archiving profile...",
       null,
+      { fileCount: filesDownloaded },
     );
   }
 }

@@ -39,6 +39,35 @@
     { key: 'x', label: 'X' },
   ];
 
+  const BATCH_SIZE = 30;
+  let visibleCount = $state(BATCH_SIZE);
+  let filteredRecords = $derived(getFilteredRecords());
+  let visibleRecords = $derived(filteredRecords.slice(0, visibleCount));
+  let sentinelEl = $state<HTMLElement | null>(null);
+  let failedImages = $state<Record<string, boolean>>({});
+
+  $effect(() => {
+    getPlatformFilter();
+    getSearchQuery();
+    visibleCount = BATCH_SIZE;
+  });
+
+  $effect(() => {
+    if (!sentinelEl || visibleCount >= filteredRecords.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          visibleCount = Math.min(filteredRecords.length, visibleCount + BATCH_SIZE);
+        }
+      },
+      { rootMargin: '500px' },
+    );
+
+    observer.observe(sentinelEl);
+    return () => observer.disconnect();
+  });
+
   onMount(() => {
     loadHistory();
   });
@@ -97,6 +126,10 @@
           {platform.label}
         </button>
       {/each}
+
+      {#if visibleCount < filteredRecords.length}
+        <div bind:this={sentinelEl} class="hm-sentinel" aria-hidden="true"></div>
+      {/if}
     </div>
 
     <button
@@ -171,7 +204,7 @@
     </div>
   {:else}
     <div class="surface-card">
-      {#each getFilteredRecords() as record (record.id)}
+      {#each visibleRecords as record (record.id)}
         <div
           class="list-row interactive"
           role="button"
@@ -182,25 +215,16 @@
           }}
         >
           <div class="hm-media-icon" data-platform={record.platform}>
-            {#if isImageFile(record.file_path)}
+            {#if isImageFile(record.file_path) && !failedImages[record.id]}
               <img
                 src={convertFileSrc(record.file_path)}
                 alt={record.author || record.post_id}
                 class="hm-media-thumb"
                 loading="lazy"
-                onerror={(e) => {
-                  (e.currentTarget as HTMLElement).style.display = 'none';
-                  const fb = (e.currentTarget as HTMLElement).nextElementSibling as HTMLElement;
-                  if (fb) fb.style.display = 'flex';
+                onerror={() => {
+                  failedImages[record.id] = true;
                 }}
               />
-              <div class="hm-media-fallback" style="display: none;">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                  <circle cx="8.5" cy="8.5" r="1.5" />
-                  <polyline points="21 15 16 10 5 21" />
-                </svg>
-              </div>
             {:else if record.file_path.endsWith('.mp4') || record.file_path.endsWith('.mov')}
               <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
                 <polygon points="5 3 19 12 5 21 5 3" />
@@ -265,6 +289,10 @@
           </span>
         </div>
       {/each}
+
+      {#if visibleCount < filteredRecords.length}
+        <div bind:this={sentinelEl} class="hm-sentinel" aria-hidden="true"></div>
+      {/if}
     </div>
   {/if}
 </div>
@@ -344,5 +372,18 @@
 
   @keyframes spin {
     to { transform: rotate(360deg); }
+  }
+
+  .list-row {
+    content-visibility: auto;
+    contain-intrinsic-size: 0 54px;
+    contain: layout paint style;
+  }
+
+  .hm-sentinel {
+    height: 1px;
+    width: 100%;
+    pointer-events: none;
+    opacity: 0;
   }
 </style>

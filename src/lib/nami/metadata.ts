@@ -185,20 +185,90 @@ export async function resolveCreatorMetadata(p: ParsedProfile): Promise<CreatorM
     } catch {
       // Keep fallbacks
     }
+  } else if (p.platform === 'facebook' && (p.username || p.cleanUrl)) {
+    try {
+      const fbTarget = p.username ? `https://www.facebook.com/${encodeURIComponent(p.username)}` : p.cleanUrl;
+      const res = await httpFetch({
+        url: fbTarget,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+          'Accept-Language': 'en-US,en;q=0.9',
+        },
+        timeout_ms: 6000,
+      });
+
+      if (res.ok && res.body) {
+        const html = res.body;
+        const imgMatch = html.match(/property="og:image"\s+content="([^"]+)"/) || html.match(/content="([^"]+)"\s+property="og:image"/);
+        const titleMatch = html.match(/property="og:title"\s+content="([^"]+)"/) || html.match(/content="([^"]+)"\s+property="og:title"/);
+        const descMatch = html.match(/property="og:description"\s+content="([^"]+)"/) || html.match(/content="([^"]+)"\s+property="og:description"/);
+
+        if (imgMatch) {
+          avatar = decodeHtmlEntities(imgMatch[1]);
+        }
+
+        if (titleMatch) {
+          const rawTitle = decodeHtmlEntities(titleMatch[1]);
+          const cleanedTitle = rawTitle.replace(/\s*\|\s*Facebook$/i, '').trim();
+          if (cleanedTitle) {
+            name = cleanedTitle;
+          }
+        }
+
+        if (descMatch) {
+          const rawDesc = decodeHtmlEntities(descMatch[1]);
+          const followersMatch = rawDesc.match(/([\d.,]+[KkMmBb]?)\s*followers/i);
+          const parts = [
+            handle,
+            'Facebook',
+            followersMatch ? `${followersMatch[1]} followers` : '',
+          ].filter(Boolean);
+          meta = parts.join(' • ');
+        }
+      }
+    } catch {
+      // Keep fallbacks
+    }
   } else if (p.platform === 'x' && p.username) {
     try {
       const res = await httpFetch({
         url: `https://api.vxtwitter.com/${encodeURIComponent(p.username)}`,
+        headers: {
+          'User-Agent': 'TelegramBot (like TwitterBot)',
+          'Accept': 'application/json',
+        },
         timeout_ms: 5000,
       });
 
-      if (res.ok && res.body) {
+      if (res.ok && res.body && !res.body.includes('<!DOCTYPE html>')) {
         const data = JSON.parse(res.body);
         if (data.name) name = data.name;
         if (data.profile_image_url) avatar = data.profile_image_url;
         const followers = data.followers_count ? `${data.followers_count.toLocaleString()} followers` : '';
         const parts = [handle, 'X', followers].filter(Boolean);
         meta = parts.join(' • ');
+      } else {
+        const xRes = await httpFetch({
+          url: `https://x.com/${encodeURIComponent(p.username)}`,
+          headers: {
+            'User-Agent': 'Twitterbot/1.0',
+            'Accept-Language': 'en-US,en;q=0.9',
+          },
+          timeout_ms: 5000,
+        });
+        if (xRes.ok && xRes.body) {
+          const html = xRes.body;
+          const imgMatch = html.match(/property="og:image"\s+content="([^"]+)"/) || html.match(/content="([^"]+)"\s+property="og:image"/);
+          const titleMatch = html.match(/property="og:title"\s+content="([^"]+)"/) || html.match(/content="([^"]+)"\s+property="og:title"/);
+
+          if (imgMatch) avatar = decodeHtmlEntities(imgMatch[1]);
+          if (titleMatch) {
+            const rawTitle = decodeHtmlEntities(titleMatch[1]);
+            name = rawTitle.replace(/\s*\(@.+?\)\s*on\s*X$/i, '').trim() || name;
+          }
+          const parts = [handle, 'X'].filter(Boolean);
+          meta = parts.join(' • ');
+        }
       }
     } catch {
       // Keep fallbacks
