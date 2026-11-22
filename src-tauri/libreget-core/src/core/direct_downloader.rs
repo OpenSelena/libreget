@@ -6,11 +6,11 @@ use std::time::Duration;
 
 use anyhow::anyhow;
 use futures::StreamExt;
-use tokio::sync::{mpsc, Semaphore};
+use tokio::sync::{Semaphore, mpsc};
 use tokio_util::sync::CancellationToken;
 
 use crate::core::http_fetcher::{
-    get_global_max_concurrent_segments, probe_remote, HttpFetcher, HttpFetcherConfig,
+    HttpFetcher, HttpFetcherConfig, get_global_max_concurrent_segments, probe_remote,
 };
 use crate::core::media_signature::{looks_like_html, sniff_media_format};
 use crate::models::progress::ProgressUpdate;
@@ -105,7 +105,11 @@ pub async fn download_direct_with_headers(
                 // before letting `is_fatal_error` end the download: at most
                 // two extra requests, and only ever two, because the step
                 // function runs dry after that.
-                if is_forbidden_error(&e) {
+                let instagram = effective_headers
+                    .as_ref()
+                    .and_then(|headers| headers.get(reqwest::header::ORIGIN))
+                    .is_some_and(|origin| origin == "https://www.instagram.com");
+                if !instagram && is_forbidden_error(&e) {
                     if let Some(step) = forbidden_retry_step(forbidden_retries) {
                         tracing::warn!("[direct] HTTP 403; retrying with {}", step.describe());
                         effective_headers = Some(headers_for_forbidden_retry(
@@ -123,10 +127,9 @@ pub async fn download_direct_with_headers(
                     return Err(e);
                 }
                 tracing::warn!(
-                    "[direct] attempt {}/{} failed: {}",
-                    attempt + 1,
-                    MAX_RETRIES,
-                    e
+                    attempt = attempt + 1,
+                    max_attempts = MAX_RETRIES,
+                    "direct media attempt failed"
                 );
                 last_err = Some(e);
                 attempt += 1;
@@ -147,7 +150,8 @@ fn part_path_for(output: &Path) -> PathBuf {
 fn is_fatal_error(err: &anyhow::Error) -> bool {
     let msg = err.to_string();
     for code in &[
-        "HTTP 400", "HTTP 401", "HTTP 403", "HTTP 404", "HTTP 405", "HTTP 410", "HTTP 451",
+        "HTTP 400", "HTTP 401", "HTTP 403", "HTTP 404", "HTTP 405", "HTTP 410", "HTTP 429",
+        "HTTP 451",
     ] {
         if msg.contains(code) {
             return true;
@@ -501,10 +505,10 @@ async fn download_single_stream(
             let _ = std::fs::remove_file(part_path);
             return Err(anyhow!("Range not satisfiable, restarting"));
         } else if !response.status().is_success() {
-            return Err(anyhow!("HTTP {} downloading {}", response.status(), url));
+            return Err(anyhow!("HTTP {} downloading media", response.status()));
         }
     } else if !response.status().is_success() {
-        return Err(anyhow!("HTTP {} downloading {}", response.status(), url));
+        return Err(anyhow!("HTTP {} downloading media", response.status()));
     }
 
     if let Some(ct) = response.headers().get("content-type") {

@@ -3,6 +3,7 @@ pub mod bluesky;
 pub mod cookie_provider;
 pub mod direct_file;
 pub mod douyin;
+mod extraction_chain;
 pub mod gdocs;
 pub mod generic_ytdlp;
 pub mod instagram;

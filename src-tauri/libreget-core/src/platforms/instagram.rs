@@ -1,3 +1,4 @@
+use super::extraction_chain::ExtractionChain;
 use crate::models::progress::ProgressUpdate;
 use anyhow::anyhow;
 use async_trait::async_trait;
@@ -71,6 +72,18 @@ impl InstagramDownloader {
                 .user_agent("curl/7.88.1")
                 .timeout(std::time::Duration::from_secs(120))
                 .connect_timeout(std::time::Duration::from_secs(15))
+                .redirect(reqwest::redirect::Policy::custom(|attempt| {
+                    if attempt.previous().len() < 5
+                        && attempt.url().scheme() == "https"
+                        && attempt.url().host_str().is_some_and(|host| {
+                            host == "instagram.com" || host.ends_with(".instagram.com")
+                        })
+                    {
+                        attempt.follow()
+                    } else {
+                        attempt.stop()
+                    }
+                }))
                 .build()
                 .unwrap_or_default();
 
@@ -122,7 +135,12 @@ impl InstagramDownloader {
     async fn resolve_share_link(&self, share_id: &str) -> anyhow::Result<String> {
         let url = format!("https://www.instagram.com/share/{}/", share_id);
 
-        let response = self.redirect_client.get(&url).send().await?;
+        let response = self
+            .redirect_client
+            .get(&url)
+            .send()
+            .await?
+            .error_for_status()?;
         let final_url = response.url().to_string();
 
         if final_url.contains("/share/") || final_url == url {
@@ -187,7 +205,7 @@ impl InstagramDownloader {
             .send()
             .await?;
 
-        let html = response.text().await?;
+        let html = response.error_for_status()?.text().await?;
 
         if Self::is_login_redirect(&html) {
             return Err(anyhow!(
@@ -423,7 +441,7 @@ impl InstagramDownloader {
             return Err(anyhow!("Instagram GQL retornou HTTP {}", response.status()));
         }
 
-        let json: serde_json::Value = response.json().await?;
+        let json: serde_json::Value = response.error_for_status()?.json().await?;
 
         let data = json
             .get("data")
@@ -457,7 +475,7 @@ impl InstagramDownloader {
             .send()
             .await?;
 
-        let html = response.text().await?;
+        let html = response.error_for_status()?.text().await?;
 
         if let Some(json_str) = Self::regex_extract(r#""init",\[\],\[(.*?)\]\],"#, &html) {
             if let Ok(embed_data) = serde_json::from_str::<serde_json::Value>(&json_str) {
@@ -505,9 +523,145 @@ impl InstagramDownloader {
         let extra_flags = vec![
             "--referer".to_string(),
             "https://www.instagram.com/".to_string(),
+            "--retries".to_string(),
+            "0".to_string(),
+            "--extractor-retries".to_string(),
+            "0".to_string(),
         ];
         let json = crate::core::ytdlp::get_video_info(&ytdlp_path, url, &extra_flags).await?;
-        Self::parse_ytdlp_media_info(&json, post_id)
+        let mut info = Self::parse_ytdlp_media_info(&json, post_id)?;
+        for quality in &mut info.available_qualities {
+            quality.url = url.to_string();
+        }
+        Ok(info)
+    }
+
+    async fn gallery_media(url: &str) -> anyhow::Result<InstagramMedia> {
+        let binary = crate::core::dependencies::find_tool("gallery-dl")
+            .await
+            .ok_or_else(|| anyhow!("gallery-dl is not installed"))?;
+        let mut cmd = tokio::process::Command::new(binary);
+        cmd.args([
+            "--config-ignore",
+            "--dump-json",
+            "--retries",
+            "0",
+            "--range",
+            "1-21",
+            "-o",
+            "extractor.cookies-update=false",
+        ]);
+        if let Some(path) = super::cookie_provider::cookie_path_for("instagram.com") {
+            cmd.arg("--cookies").arg(path);
+        }
+        let output = cmd
+            .arg("--")
+            .arg(url)
+            .stdin(std::process::Stdio::null())
+            .kill_on_drop(true)
+            .output()
+            .await?;
+        if !output.status.success() {
+            return Err(anyhow!("{}", String::from_utf8_lossy(&output.stderr)));
+        }
+        let payload = serde_json::from_slice(&output.stdout)?;
+        Self::parse_gallery_media(&payload).map_err(|error| {
+            if output.stderr.is_empty() {
+                error
+            } else {
+                anyhow!("{}", String::from_utf8_lossy(&output.stderr))
+            }
+        })
+    }
+
+    fn parse_gallery_media(value: &serde_json::Value) -> anyhow::Result<InstagramMedia> {
+        let rows = value
+            .as_array()
+            .ok_or_else(|| anyhow!("Invalid gallery-dl metadata"))?;
+        // gallery-dl may exit successfully while reporting an extractor error as a JSON record.
+        if let Some(error) = rows
+            .iter()
+            .find(|row| row.get(0).and_then(|v| v.as_i64()) == Some(-1))
+        {
+            return Err(anyhow!(
+                "{}",
+                error
+                    .pointer("/1/message")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("gallery-dl extractor failed")
+            ));
+        }
+        let mut items = Vec::new();
+        for row in rows
+            .iter()
+            .filter(|r| r.get(0).and_then(|v| v.as_u64()) == Some(3))
+        {
+            let raw = row
+                .get(1)
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow!("Missing gallery item URL"))?;
+            if !Self::is_instagram_cdn(raw) {
+                return Err(anyhow!("Unexpected Instagram media host"));
+            }
+            let ext = row
+                .pointer("/2/extension")
+                .and_then(|v| v.as_str())
+                .unwrap_or_default();
+            let is_video = match ext {
+                "mp4" => true,
+                "jpg" | "jpeg" => false,
+                _ => return Err(anyhow!("Unsupported gallery media format")),
+            };
+            items.push(CarouselItem {
+                url: raw.to_string(),
+                is_video,
+            });
+        }
+        match items.len() {
+            0 => Err(anyhow!("No downloadable Instagram gallery items")),
+            1 => {
+                let item = items.remove(0);
+                Ok(InstagramMedia::Single {
+                    url: item.url,
+                    is_video: item.is_video,
+                })
+            }
+            2..=20 => Ok(InstagramMedia::Carousel { items }),
+            _ => Err(anyhow!("Instagram album exceeds the supported item count")),
+        }
+    }
+
+    fn require_expected_media(media: InstagramMedia, reel: bool) -> anyhow::Result<InstagramMedia> {
+        if reel && !matches!(&media, InstagramMedia::Single { is_video: true, .. }) {
+            return Err(anyhow!("Instagram returned a cover instead of Reel video"));
+        }
+        let valid_urls = match &media {
+            InstagramMedia::Single { url, .. } => Self::is_instagram_cdn(url),
+            InstagramMedia::Carousel { items } => {
+                items.iter().all(|item| Self::is_instagram_cdn(&item.url))
+            }
+        };
+        if !valid_urls {
+            return Err(anyhow!("Unexpected Instagram media host"));
+        }
+        Ok(media)
+    }
+
+    fn is_instagram_cdn(raw: &str) -> bool {
+        let Ok(parsed) = url::Url::parse(raw) else {
+            return false;
+        };
+        let host = parsed.host_str().unwrap_or_default();
+        parsed.scheme() == "https"
+            && parsed.username().is_empty()
+            && parsed.password().is_none()
+            && parsed.port().is_none()
+            && ["cdninstagram.com", "fbcdn.net"].iter().any(|suffix| {
+                host == *suffix
+                    || host
+                        .strip_suffix(suffix)
+                        .is_some_and(|prefix| prefix.ends_with('.'))
+            })
     }
 
     fn extract_media_from_gql(data: &serde_json::Value) -> anyhow::Result<InstagramMedia> {
@@ -537,9 +691,10 @@ impl InstagramDownloader {
                     })
                     .collect();
 
-                if !items.is_empty() {
+                if !items.is_empty() && items.len() == edges.len() {
                     return Ok(InstagramMedia::Carousel { items });
                 }
+                return Err(anyhow!("Instagram returned an incomplete carousel"));
             }
         }
 
@@ -582,6 +737,13 @@ impl InstagramDownloader {
     }
 
     fn resolve_fallback_post_url(info: &MediaInfo, opts: &DownloadOptions) -> Option<String> {
+        if let Some(url) = opts
+            .page_url
+            .as_deref()
+            .filter(|url| Self::is_story_url(url))
+        {
+            return Some(url.to_string());
+        }
         if let Some(url) = Self::post_url_from_title(&info.title) {
             return Some(url);
         }
@@ -599,6 +761,42 @@ impl InstagramDownloader {
     fn is_html_block_error(err: &anyhow::Error) -> bool {
         let msg = err.to_string();
         msg.contains("HTML instead of media")
+    }
+
+    fn expired_cdn(err: &anyhow::Error) -> bool {
+        Self::is_html_block_error(err)
+            || ["HTTP 403", "HTTP 404", "HTTP 410"]
+                .iter()
+                .any(|code| err.to_string().starts_with(code))
+    }
+
+    async fn validate_direct_media(path: &std::path::Path, format: &str) -> anyhow::Result<()> {
+        use tokio::io::AsyncReadExt;
+        let mut file = tokio::fs::File::open(path).await?;
+        let mut head = [0; 32];
+        let mut read = 0;
+        while read < head.len() {
+            let n = file.read(&mut head[read..]).await?;
+            if n == 0 {
+                break;
+            }
+            read += n;
+        }
+        let head = &head[..read];
+        let valid = match format {
+            "jpg" => head.starts_with(&[0xff, 0xd8, 0xff]),
+            "mp4" => matches!(
+                crate::core::media_signature::sniff_media_format(head),
+                Some(crate::core::media_signature::MediaSignature::Mp4)
+            ),
+            _ => false,
+        };
+        if !valid {
+            drop(file);
+            let _ = tokio::fs::remove_file(path).await;
+            return Err(anyhow!("Instagram CDN returned invalid {format} data"));
+        }
+        Ok(())
     }
 
     async fn ytdlp_download_post(
@@ -685,72 +883,110 @@ impl PlatformDownloader for InstagramDownloader {
     }
 
     async fn get_media_info(&self, url: &str) -> anyhow::Result<MediaInfo> {
-        if Self::is_story_url(url) {
+        let resolved;
+        let url = if let Some(share_id) = Self::extract_share_id(url) {
+            if !share_id
+                .bytes()
+                .all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-')
+            {
+                return Err(anyhow!("Invalid Instagram share link"));
+            }
+            resolved = tokio::time::timeout(
+                std::time::Duration::from_secs(10),
+                self.resolve_share_link(&share_id),
+            )
+            .await??;
+            resolved.as_str()
+        } else {
+            url
+        };
+        let parsed = url::Url::parse(url)?;
+        if !parsed.host_str().is_some_and(|h| {
+            h == "instagram.com"
+                || h.ends_with(".instagram.com")
+                || h == "ddinstagram.com"
+                || h.ends_with(".ddinstagram.com")
+        }) {
             return Err(anyhow!(
-                "Instagram Stories are not supported. Only public posts, reels and carousels."
+                "Instagram share did not resolve to an Instagram URL"
             ));
         }
-
-        let post_id = if let Some(share_id) = Self::extract_share_id(url) {
-            let resolved = self.resolve_share_link(&share_id).await?;
-            Self::extract_post_id(&resolved).ok_or_else(|| anyhow!("Could not extract post ID"))?
+        let story = Self::is_story_url(url);
+        let reel = Self::is_reel_url(url);
+        let mut source = parsed;
+        source
+            .set_scheme("https")
+            .map_err(|_| anyhow!("Invalid Instagram URL"))?;
+        source.set_host(Some("www.instagram.com"))?;
+        source
+            .set_port(None)
+            .map_err(|_| anyhow!("Invalid Instagram port"))?;
+        source
+            .set_username("")
+            .map_err(|_| anyhow!("Invalid Instagram URL"))?;
+        source
+            .set_password(None)
+            .map_err(|_| anyhow!("Invalid Instagram URL"))?;
+        source.set_query(None);
+        source.set_fragment(None);
+        let post_id = if story {
+            source
+                .path()
+                .trim_end_matches('/')
+                .rsplit('/')
+                .next()
+                .filter(|id| !id.is_empty() && id.bytes().all(|b| b.is_ascii_digit()))
+                .ok_or_else(|| anyhow!("Open and copy a link to an individual Instagram Story"))?
+                .to_string()
         } else {
-            Self::extract_post_id(url).ok_or_else(|| anyhow!("Could not extract post ID"))?
+            Self::extract_post_id(source.as_str())
+                .filter(|id| {
+                    id.bytes()
+                        .all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-')
+                })
+                .ok_or_else(|| anyhow!("Could not extract Instagram post ID"))?
         };
-
-        if let Ok(info) = self.fallback_ytdlp(url, &post_id).await {
-            return Ok(info);
-        }
-
-        let filename_base = format!("instagram_{}", post_id);
-
-        let embed_result = self.request_embed(&post_id).await;
-        let media = match &embed_result {
-            Ok(data) => Self::extract_media_from_embed(data),
-            Err(_) => match self.request_gql(&post_id).await {
-                Ok(data) => Self::extract_media_from_gql(&data),
-                Err(_) => {
-                    return self.fallback_ytdlp(url, &post_id).await;
-                }
-            },
-        };
-
-        let media = match media {
-            Ok(m) => m,
-            Err(_) => {
-                return self.fallback_ytdlp(url, &post_id).await;
+        let mut chain = ExtractionChain::new();
+        if reel {
+            if let Some(info) = chain
+                .attempt("yt-dlp", self.fallback_ytdlp(source.as_str(), &post_id))
+                .await
+            {
+                return Ok(info);
             }
-        };
-
-        // Instagram embed metadata can expose only a Reel's display_url,
-        // which is the cover image rather than the video. In that case,
-        // use yt-dlp to resolve and download the actual video streams.
-        if Self::is_reel_url(url)
-            && matches!(
-                &media,
-                InstagramMedia::Single {
-                    is_video: false,
-                    ..
-                }
-            )
-        {
-            tracing::debug!(
-                "[instagram] Reel embed returned only a display image; falling back to yt-dlp"
-            );
-            return self.fallback_ytdlp(url, &post_id).await;
         }
-
-        let author = embed_result
-            .as_ref()
-            .ok()
-            .and_then(|d| {
-                d.pointer("/owner/username")
-                    .or_else(|| d.pointer("/user/username"))
-                    .or_else(|| d.get("author_name"))
-                    .and_then(|v| v.as_str())
+        let mut media = chain
+            .attempt("gallery-dl", async {
+                Self::require_expected_media(Self::gallery_media(source.as_str()).await?, reel)
             })
-            .unwrap_or("")
-            .to_string();
+            .await;
+        if media.is_none() && !story {
+            media = chain
+                .attempt("instagram-embed", async {
+                    let data = self.request_embed(&post_id).await?;
+                    Self::require_expected_media(Self::extract_media_from_embed(&data)?, reel)
+                })
+                .await;
+        }
+        if media.is_none() && !story {
+            media = chain
+                .attempt("instagram-native", async {
+                    let data = self.request_gql(&post_id).await?;
+                    Self::require_expected_media(Self::extract_media_from_gql(&data)?, reel)
+                })
+                .await;
+        }
+        if media.is_none() && !reel && !story {
+            if let Some(info) = chain
+                .attempt("yt-dlp", self.fallback_ytdlp(source.as_str(), &post_id))
+                .await
+            {
+                return Ok(info);
+            }
+        }
+        let media = media.ok_or_else(|| chain.error())?;
+        let filename_base = format!("instagram_{}", post_id);
+        let author = String::new();
 
         match media {
             InstagramMedia::Single { url, is_video } => {
@@ -829,6 +1065,9 @@ impl PlatformDownloader for InstagramDownloader {
 
         let count = info.available_qualities.len();
 
+        if count == 0 {
+            return Err(anyhow!("Instagram returned no downloadable media"));
+        }
         if count == 1 {
             let quality = info.available_qualities.first().unwrap();
 
@@ -854,6 +1093,7 @@ impl PlatformDownloader for InstagramDownloader {
             .await
             {
                 Ok(bytes) => {
+                    Self::validate_direct_media(&output, &quality.format).await?;
                     return Ok(DownloadResult {
                         file_path: output,
                         file_size_bytes: bytes,
@@ -862,13 +1102,47 @@ impl PlatformDownloader for InstagramDownloader {
                     });
                 }
                 Err(e) => {
-                    if Self::is_html_block_error(&e) {
+                    if Self::expired_cdn(&e) && !opts.cancel_token.is_cancelled() {
                         if let Some(post_url) = Self::resolve_fallback_post_url(info, opts) {
-                            tracing::warn!(
-                                "[instagram] direct CDN fetch returned HTML for {}; falling back to yt-dlp",
-                                post_url
+                            tracing::info!(
+                                method = "instagram-cdn",
+                                "refreshing expired media URL"
                             );
-                            return Self::ytdlp_download_post(&post_url, opts, progress).await;
+                            let fresh = tokio::select! {
+                                _ = opts.cancel_token.cancelled() => return Err(anyhow!("Download cancelled")),
+                                result = self.get_media_info(&post_url) => result?,
+                            };
+                            if fresh.media_type != info.media_type
+                                || fresh.available_qualities.is_empty()
+                            {
+                                return Err(anyhow!("Instagram media changed during refresh"));
+                            }
+                            let next = &fresh.available_qualities[0];
+                            if next.format == "ytdlp" {
+                                return Self::ytdlp_download_post(&next.url, opts, progress).await;
+                            }
+                            if fresh.available_qualities.len() != 1
+                                || next.format != quality.format
+                                || next.url == quality.url
+                            {
+                                return Err(anyhow!("Instagram did not return a fresh media URL"));
+                            }
+                            let bytes = download_direct_with_headers(
+                                &self.client,
+                                &next.url,
+                                &output,
+                                progress,
+                                Some(Self::instagram_headers()),
+                                Some(&opts.cancel_token),
+                            )
+                            .await?;
+                            Self::validate_direct_media(&output, &next.format).await?;
+                            return Ok(DownloadResult {
+                                file_path: output,
+                                file_size_bytes: bytes,
+                                duration_seconds: 0.0,
+                                torrent_id: None,
+                            });
                         }
                     }
                     return Err(e);
@@ -887,7 +1161,9 @@ impl PlatformDownloader for InstagramDownloader {
                 quality.format,
             );
             let output = opts.output_dir.join(&filename);
-            let (tx, _rx) = mpsc::channel(8);
+            let (tx, rx) = mpsc::channel(8);
+            // A receiver kept alive but never drained blocks the direct downloader.
+            drop(rx);
 
             let mut hdr_map = Self::instagram_headers();
             crate::core::http_client::inject_ua_header(&mut hdr_map, opts.user_agent.as_deref());
@@ -904,6 +1180,7 @@ impl PlatformDownloader for InstagramDownloader {
             .await
             {
                 Ok(bytes) => {
+                    Self::validate_direct_media(&output, &quality.format).await?;
                     total_bytes += bytes;
                     last_path = output;
 
@@ -911,17 +1188,6 @@ impl PlatformDownloader for InstagramDownloader {
                     let _ = progress.send(ProgressUpdate::percent(percent)).await;
                 }
                 Err(e) => {
-                    if Self::is_html_block_error(&e) {
-                        if let Some(post_url) = Self::resolve_fallback_post_url(info, opts) {
-                            tracing::warn!(
-                                "[instagram] carousel item {}/{} returned HTML for {}; falling back to yt-dlp for full post",
-                                i + 1,
-                                count,
-                                post_url
-                            );
-                            return Self::ytdlp_download_post(&post_url, opts, progress).await;
-                        }
-                    }
                     return Err(e);
                 }
             }
@@ -938,6 +1204,97 @@ impl PlatformDownloader for InstagramDownloader {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn gallery_preserves_mixed_carousel_and_rejects_foreign_cdn() {
+        use super::{InstagramDownloader, InstagramMedia};
+        let response = serde_json::json!([
+            [2, {}],
+            [3, "https://scontent.cdninstagram.com/one.jpg", {"extension":"jpg"}],
+            [3, "https://scontent.fbcdn.net/two.mp4", {"extension":"mp4"}]
+        ]);
+        let InstagramMedia::Carousel { items } =
+            InstagramDownloader::parse_gallery_media(&response).unwrap()
+        else {
+            panic!("expected carousel")
+        };
+        assert_eq!(items.len(), 2);
+        assert!(!items[0].is_video && items[1].is_video);
+        assert!(!InstagramDownloader::is_instagram_cdn(
+            "https://cdninstagram.com.example.org/a.jpg"
+        ));
+    }
+
+    #[test]
+    fn reel_cover_cannot_complete_extraction() {
+        use super::{InstagramDownloader, InstagramMedia};
+        let cover = InstagramMedia::Single {
+            url: "https://scontent.cdninstagram.com/cover.jpg".into(),
+            is_video: false,
+        };
+        assert!(InstagramDownloader::require_expected_media(cover, true).is_err());
+        assert!(InstagramDownloader::expired_cdn(&anyhow::anyhow!(
+            "HTTP 403 Forbidden downloading media"
+        )));
+        assert!(!InstagramDownloader::expired_cdn(&anyhow::anyhow!(
+            "HTTP 429 Too Many Requests"
+        )));
+    }
+
+    #[test]
+    fn gallery_json_error_is_not_an_empty_success() {
+        let response =
+            serde_json::json!([[-1, {"error":"HttpError", "message":"'401 Unauthorized'"}]]);
+        let Err(error) = InstagramDownloader::parse_gallery_media(&response) else {
+            panic!("expected an authorization error");
+        };
+        assert_eq!(
+            super::super::extraction_chain::Failure::classify(&error),
+            super::super::extraction_chain::Failure::Authorization
+        );
+    }
+
+    #[tokio::test]
+    #[ignore = "requires a public Instagram URL and local extractors"]
+    async fn public_instagram_extraction_live() {
+        use super::*;
+        let url = std::env::var("LIBREGET_PUBLIC_INSTAGRAM_URL").unwrap();
+        let engine = InstagramDownloader::new();
+        let info = engine.get_media_info(&url).await.unwrap();
+        assert!(!info.available_qualities.is_empty());
+        println!(
+            "Instagram: {:?}, {} entries",
+            info.media_type,
+            info.available_qualities.len()
+        );
+        if std::env::var_os("LIBREGET_PUBLIC_INSTAGRAM_DOWNLOAD").is_some() {
+            let dir =
+                std::env::temp_dir().join(format!("libreget-instagram-{}", rand::random::<u64>()));
+            tokio::fs::create_dir(&dir).await.unwrap();
+            let mut opts = make_opts(Some(&url));
+            opts.output_dir = dir.clone();
+            let (tx, rx) = mpsc::channel(8);
+            drop(rx);
+            let result = tokio::time::timeout(
+                std::time::Duration::from_secs(60),
+                engine.download(&info, &opts, tx),
+            )
+            .await;
+            let bytes = match &result {
+                Ok(Ok(file)) => tokio::fs::metadata(&file.file_path)
+                    .await
+                    .ok()
+                    .map(|m| m.len()),
+                _ => None,
+            };
+            tokio::fs::remove_dir_all(dir).await.unwrap();
+            let file = result
+                .expect("download timed out")
+                .expect("download failed");
+            assert!(file.file_size_bytes > 0 && bytes == Some(file.file_size_bytes));
+            println!("Downloaded {} bytes", file.file_size_bytes);
+        }
+    }
+
     use super::*;
     use std::path::PathBuf;
     use tokio_util::sync::CancellationToken;
