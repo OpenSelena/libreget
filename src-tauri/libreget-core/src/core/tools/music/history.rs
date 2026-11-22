@@ -258,7 +258,7 @@ pub fn collect_sources(inputs: &[String]) -> Result<Vec<(String, String)>> {
             let mut zip = zip::ZipArchive::new(file)?;
             for i in 0..zip.len() {
                 let mut e = zip.by_index(i)?;
-                let name = e.name().to_string();
+                let name = e.name()?.into_owned();
                 if !e.is_file() || !looks_like_history(&name) {
                     continue;
                 }

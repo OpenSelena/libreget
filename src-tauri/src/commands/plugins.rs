@@ -443,7 +443,9 @@ pub async fn install_plugin_zip_from_repo(
 
     for i in 0..archive.len() {
         let mut file = archive.by_index(i).map_err(|e| e.to_string())?;
-        let mangled = file.mangled_name();
+        let mangled = file
+            .enclosed_name()
+            .ok_or_else(|| "Invalid ZIP entry path".to_string())?;
         let outpath = plugin_dir.join(&mangled);
         if !outpath.starts_with(&plugin_dir) {
             return Err("Malicious zip path traversal detected".to_string());

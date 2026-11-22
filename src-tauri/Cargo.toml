@@ -61,10 +61,10 @@ tokio-util = { version = "0.7", features = ["io", "rt"] }
 url = "2"
 urlencoding = "2"
 rand = "0.10.0"
-rusqlite = { version = "0.32", features = ["bundled"] }
+rusqlite = { version = "0.43", features = ["bundled"] }
 base64 = "0.22.1"
 filetime = "0.2.27"
-zip = { version = "8", default-features = false, features = ["deflate"] }
+zip = { version = "9.0.5", default-features = false, features = ["deflate"] }
 tar = "0.4"
 xz2 = { version = "0.1", features = ["static"] }
 sha2 = "0.10"

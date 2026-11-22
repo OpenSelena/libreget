@@ -81,7 +81,7 @@ impl Source {
                 if !e.is_file() {
                     continue;
                 }
-                let name = e.name().to_string();
+                let name = e.name()?.into_owned();
                 entries.push(name.clone());
                 if is_csv(&name) {
                     files.entry(key(&name)).or_insert(name);
@@ -277,7 +277,7 @@ pub(crate) mod fixture {
             return path;
         };
         let mut z = zip::ZipWriter::new(f);
-        let opts: zip::write::FileOptions<'_, ()> =
+        let opts: zip::write::SimpleFileOptions =
             zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
         for (name, body) in files() {
             if z.start_file(format!("Basic_LinkedInDataExport/{}", name), opts)
