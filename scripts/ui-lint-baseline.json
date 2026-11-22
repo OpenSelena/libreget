@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-21",
+  "updated_at": "2026-11-22",
   "targets": {
     "/": {
       "control-size": 2,
@@ -46,7 +46,7 @@
       "control-size": 2,
       "font-size": 10,
       "label-consistency": 3,
-      "text-contrast": 6
+      "text-contrast": 4
     },
     "/study": {
       "control-gap": 4,
