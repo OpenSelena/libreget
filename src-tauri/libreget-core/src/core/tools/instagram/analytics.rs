@@ -363,7 +363,7 @@ fn read_export_files(path: &Path) -> anyhow::Result<Vec<(String, Vec<u8>)>> {
         let mut zip = zip::ZipArchive::new(file)?;
         for i in 0..zip.len() {
             let mut entry = zip.by_index(i)?;
-            let name = entry.name().to_string();
+            let name = entry.name()?.into_owned();
             if wanted(&name) {
                 let mut bytes = Vec::new();
                 entry.read_to_end(&mut bytes)?;

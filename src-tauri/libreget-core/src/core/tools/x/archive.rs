@@ -82,7 +82,7 @@ impl Source {
             let mut zip = zip::ZipArchive::new(f)?;
             for i in 0..zip.len() {
                 let mut entry = zip.by_index(i)?;
-                let full = entry.name().to_string();
+                let full = entry.name()?.into_owned();
                 let name = full.rsplit('/').next().unwrap_or(&full).to_string();
                 if full.contains("data/") && name.ends_with(".js") && wanted(&name) {
                     let mut s = String::new();
