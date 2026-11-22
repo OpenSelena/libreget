@@ -27,13 +27,14 @@ pub struct DependencyVariantInfo {
 
 #[tauri::command]
 pub async fn check_dependencies() -> Result<Vec<DependencyStatus>, String> {
-    let (ytdlp_result, ffmpeg_result) = tokio::join!(
+    let (ytdlp_result, ffmpeg_result, gallerydl_result) = tokio::join!(
         dependencies::find_tool_with_source("yt-dlp"),
         dependencies::find_tool_with_source("ffmpeg"),
+        dependencies::find_tool_with_source("gallery-dl"),
     );
 
     // Extract versions from the already-found paths — no second find required.
-    let (ytdlp_version, ffmpeg_version) = tokio::join!(
+    let (ytdlp_version, ffmpeg_version, gallerydl_version) = tokio::join!(
         async {
             match ytdlp_result.as_ref() {
                 Some((path, _)) => dependencies::check_version_at_path(path, "yt-dlp").await,
@@ -43,6 +44,12 @@ pub async fn check_dependencies() -> Result<Vec<DependencyStatus>, String> {
         async {
             match ffmpeg_result.as_ref() {
                 Some((path, _)) => dependencies::check_version_at_path(path, "ffmpeg").await,
+                None => None,
+            }
+        },
+        async {
+            match gallerydl_result.as_ref() {
+                Some((path, _)) => dependencies::check_version_at_path(path, "gallery-dl").await,
                 None => None,
             }
         },
@@ -67,6 +74,12 @@ pub async fn check_dependencies() -> Result<Vec<DependencyStatus>, String> {
         .map(|(_, s)| s.to_string())
         .unwrap_or_else(|| "missing".to_string());
     let ffmpeg_path = ffmpeg_result.map(|(p, _)| p.to_string_lossy().to_string());
+
+    let gallerydl_source = gallerydl_result
+        .as_ref()
+        .map(|(_, s)| s.to_string())
+        .unwrap_or_else(|| "missing".to_string());
+    let gallerydl_path = gallerydl_result.map(|(p, _)| p.to_string_lossy().to_string());
 
     let ytdlp_outdated = ytdlp_version
         .as_deref()
@@ -105,6 +118,14 @@ pub async fn check_dependencies() -> Result<Vec<DependencyStatus>, String> {
             path: pdfium_resolved
                 .as_ref()
                 .map(|(p, _)| p.to_string_lossy().to_string()),
+            outdated: false,
+        },
+        DependencyStatus {
+            name: "gallery-dl".into(),
+            installed: gallerydl_version.is_some(),
+            version: gallerydl_version,
+            source: gallerydl_source,
+            path: gallerydl_path,
             outdated: false,
         },
     ])
@@ -158,6 +179,18 @@ pub async fn install_dependency(
                 .map_err(|e| e.to_string())?;
             return Ok(pdfium::read_version_marker().unwrap_or_else(|| "installed".to_string()));
         }
+        "gallery-dl" => {
+            if force {
+                archive_before_update("gallery-dl").await;
+                dependencies::update_gallerydl()
+                    .await
+                    .map_err(|e| e.to_string())?;
+            } else {
+                dependencies::download_gallerydl()
+                    .await
+                    .map_err(|e| e.to_string())?;
+            }
+        }
         _ => return Err(format!("Unknown dependency: {}", name)),
     }
 
@@ -178,6 +211,11 @@ pub async fn install_dependency(
 async fn managed_binary_path(name: &str) -> Option<PathBuf> {
     match name {
         "yt-dlp" => libreget_core::core::ytdlp::managed_ytdlp_path(),
+        "gallery-dl" => {
+            let bin_dir = libreget_core::core::dependencies::managed_bin_dir()?;
+            let target = bin_dir.join(libreget_core::core::dependencies::bin_name("gallery-dl"));
+            target.exists().then_some(target)
+        }
         _ => None,
     }
 }
@@ -275,7 +313,7 @@ pub fn dependency_variants(name: String) -> Result<Vec<DependencyVariantInfo>, S
                 recommended: v.recommended,
             })
             .collect()),
-        "yt-dlp" | "FFmpeg" => Ok(Vec::new()),
+        "yt-dlp" | "FFmpeg" | "gallery-dl" => Ok(Vec::new()),
         _ => Err(format!("Unknown dependency: {}", name)),
     }
 }
@@ -285,7 +323,7 @@ pub fn dependency_install_dir(name: String) -> Result<String, String> {
     let dir = match name.as_str() {
         "PDFium" => pdfium::pdfium_target_dir()
             .ok_or_else(|| "could not determine plugin data dir".to_string())?,
-        "yt-dlp" | "FFmpeg" => crate::core::paths::app_data_dir()
+        "yt-dlp" | "FFmpeg" | "gallery-dl" => crate::core::paths::app_data_dir()
             .ok_or_else(|| "could not determine app data dir".to_string())?
             .join("bin"),
         _ => return Err(format!("Unknown dependency: {}", name)),

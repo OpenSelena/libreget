@@ -144,8 +144,7 @@
     }
   });
 
-  // #222: as tres, e nao so o PDFium.
-  let supportsCustomFile = $derived(["yt-dlp", "FFmpeg", "PDFium"].includes(name));
+  let supportsCustomFile = $derived(["yt-dlp", "FFmpeg", "PDFium", "gallery-dl"].includes(name));
 
   let customPath = $state<string | null>(null);
 

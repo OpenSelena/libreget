@@ -109,7 +109,10 @@ pub struct DownloadSettings {
     pub clipboard_detection: bool,
     #[serde(default)]
     pub auto_download_on_paste: bool,
-    #[serde(default = "default_filename_template")]
+    #[serde(
+        default = "default_filename_template",
+        deserialize_with = "deserialize_filename_template"
+    )]
     pub filename_template: String,
     #[serde(default)]
     pub organize_by_platform: bool,
@@ -311,8 +314,23 @@ fn default_true() -> bool {
     true
 }
 
+pub const LEGACY_DEFAULT_FILENAME_TEMPLATE: &str = "%(title).200s [%(id)s].%(ext)s";
+
 pub fn default_filename_template() -> String {
-    "%(title).200s [%(id)s].%(ext)s".into()
+    "%(title).200s.%(ext)s".into()
+}
+
+fn deserialize_filename_template<'de, D>(deserializer: D) -> Result<String, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::Deserialize;
+    let s = String::deserialize(deserializer)?;
+    if s == LEGACY_DEFAULT_FILENAME_TEMPLATE {
+        Ok(default_filename_template())
+    } else {
+        Ok(s)
+    }
 }
 
 fn default_hotkey_binding() -> String {

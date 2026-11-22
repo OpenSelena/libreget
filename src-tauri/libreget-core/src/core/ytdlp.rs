@@ -462,7 +462,7 @@ pub(crate) fn prepare_override_args(
         args.push("-o".to_string());
         args.push(
             output_dir
-                .join("%(title).200s [%(id)s].%(ext)s")
+                .join("%(title).200s.%(ext)s")
                 .to_string_lossy()
                 .to_string(),
         );
@@ -3220,7 +3220,7 @@ pub async fn download_video(
     };
     let template = filename_template
         .map(|t| t.to_string())
-        .unwrap_or_else(|| format!("%(title).{}s [%(id)s].%(ext)s", max_name));
+        .unwrap_or_else(|| format!("%(title).{}s.%(ext)s", max_name));
     let output_template = output_dir.join(&template).to_string_lossy().to_string();
 
     std::fs::create_dir_all(output_dir)?;
