@@ -119,6 +119,21 @@
           {/if}
         </div>
       {/each}
+      <div class="divider"></div>
+      <div class="setting-row">
+        <div class="setting-col">
+          <span class="setting-label">Official repository</span>
+          <span class="setting-path">v0.4.5 releases, source code, and standalone install zips.</span>
+        </div>
+        <a
+          class="button"
+          href="https://github.com/OpenSelena/libreget-extension"
+          target="_blank"
+          rel="noreferrer"
+        >
+          GitHub
+        </a>
+      </div>
     </div>
   </section>
 

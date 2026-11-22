@@ -115,7 +115,7 @@ fn format_cookie_line(c: &ExtensionCookie, session_ttl: u64) -> String {
         (format!(".{}", raw_domain), "TRUE")
     };
     let secure = if c.secure { "TRUE" } else { "FALSE" };
-    let expires = if c.expires == 0 {
+    let expires = if c.expires <= 0 {
         session_ttl
     } else {
         c.expires as u64
@@ -332,12 +332,15 @@ pub fn read_extension_metadata(url: &str) -> Option<ExtensionMetadata> {
     let path = extension_metadata_path();
     let now = current_unix_timestamp();
     let mut map = load_metadata_map(&path);
+    let original_len = map.len();
     prune_expired_metadata(&mut map, now);
 
-    let entry = map.remove(url)?;
-    let result = parse_metadata_entry(&entry);
+    let entry = map.get(url)?;
+    let result = parse_metadata_entry(entry);
 
-    let _ = write_metadata_map(&path, &map);
+    if map.len() != original_len {
+        let _ = write_metadata_map(&path, &map);
+    }
 
     Some(result)
 }

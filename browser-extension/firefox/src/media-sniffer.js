@@ -179,12 +179,15 @@ function isHlsSegment(url, contentType) {
 
 function isPlatformCdnFragment(url, contentType, contentLength) {
   try {
-    const host = new URL(url).hostname;
+    const u = new URL(url);
+    const host = u.hostname;
     const isPlatformCdn = PLATFORM_CDN_HOSTS.some(cdn => host.includes(cdn));
     if (!isPlatformCdn) return false;
-    if (contentLength > 0 && contentLength < 5 * 1024 * 1024) return true;
+    if (u.searchParams.has("bytestart") || u.searchParams.has("byterange")) return true;
     const ct = contentType.toLowerCase();
     if (ct.includes("octet-stream")) return true;
+    const isMetaCdn = host.includes("fbcdn.net") || host.includes("cdninstagram.com");
+    if (isMetaCdn && contentLength > 0 && contentLength < 5 * 1024 * 1024) return true;
     return false;
   } catch { return false; }
 }

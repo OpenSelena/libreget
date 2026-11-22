@@ -415,7 +415,7 @@ export const DEFAULT_REGEX_RULES = Object.freeze([
     enabled: true,
   }),
   Object.freeze({
-    pattern: ".*\\.bilivideo\\.(com|cn).*\\/live-bvc\\/.*m4s",
+    pattern: "^https?://[^/]*\\.bilivideo\\.(com|cn)/.*live-bvc/.*m4s",
     flags: "ig",
     action: "block",
     ext: "",

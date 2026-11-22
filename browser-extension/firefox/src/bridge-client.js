@@ -198,10 +198,11 @@ export async function autoPair({
   fetchImpl = typeof fetch !== "undefined" ? fetch : null,
   storage = globalThis.chrome?.storage?.local,
   timeoutMs = HEALTH_TIMEOUT_MS,
+  force = false,
 } = {}) {
   if (!fetchImpl) return { ok: false, reason: "no-fetch" };
   const current = await loadBridgeConfig({ storage });
-  if (current.token) return { ok: true, reason: "already-paired" };
+  if (!force && current.token) return { ok: true, reason: "already-paired" };
 
   let endpoint = current.endpoint;
   const discovered = await discoverBridgeEndpoint({ fetchImpl, timeoutMs });

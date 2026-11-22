@@ -3,14 +3,14 @@ import assert from "node:assert/strict";
 
 import { buildLibregetSchemeUrl, openLibregetScheme } from "../src/send-via-scheme.js";
 
-test("buildLibregetSchemeUrl strips http(s) prefix and prepends libreget://", () => {
+test("buildLibregetSchemeUrl strips https prefix and preserves http protocol in libreget://", () => {
   assert.equal(
     buildLibregetSchemeUrl("https://www.youtube.com/watch?v=abc"),
     "libreget://www.youtube.com/watch?v=abc"
   );
   assert.equal(
     buildLibregetSchemeUrl("http://example.com/v"),
-    "libreget://example.com/v"
+    "libreget://http://example.com/v"
   );
 });
 

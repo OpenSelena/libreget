@@ -218,7 +218,7 @@ The extension does two jobs. On sites it recognizes (YouTube, Instagram, TikTok,
 
 For the sites the sniffer cannot see, there is **Deep search**, a switch in the popup that hooks the page's own video player and catches playlists that never show up as network requests. It asks for permission on all sites the first time and stays off until then. Around it, the sniffer estimates the size of an HLS stream before you download, pairs the separate video and audio tracks a site serves so you get one file, checks the first bytes of what it found so an HTML error page is never saved as a video, and lets you edit the capture rules in the options page. The same options page can back up the list of extensions you have installed, ahead of Chrome dropping Manifest V2 extensions; that needs the optional "management" permission and asks for it only when you use it.
 
-Pick the level that matches how comfortable you are.
+The companion browser extension source and standalone releases are maintained at [OpenSelena/libreget-extension](https://github.com/OpenSelena/libreget-extension). Pick the level that matches how comfortable you are.
 
 <p align="center">
   <img src="assets/readme/extension.png" alt="Penguin mascot plugging a cable from a browser window into the LibreGet app window, with cookies travelling along it and a padlock and a house above it: the pairing stays on your own machine." width="100%" />
@@ -238,11 +238,11 @@ From now on, visit any supported page and click the icon. The page, its cookies 
 
 ### Level 2: from the release zip
 
-Every release ships `libreget-chrome-extension-vX.Y.Z.zip`. Download it from the [latest release](https://github.com/OpenSelena/libreget/releases/latest), unzip it, then follow steps 3 to 7 above pointing **Load unpacked** at the unzipped folder. Use this if you keep the app on one machine and the browser on another, or if you are installing for someone else.
+Every release ships pre-built extension archives. Download `libreget-chrome-extension.zip` or `libreget-firefox-extension.zip` from the official [OpenSelena/libreget-extension releases](https://github.com/OpenSelena/libreget-extension/releases/latest), unzip it, then follow steps 3 to 7 above pointing **Load unpacked** at the unzipped folder. Use this if you keep the app on one machine and the browser on another, or if you are installing for someone else.
 
 ### Level 3: Firefox, other browsers and manual pairing
 
-Firefox: **Settings → Plugins → Browser extension → Update / Install** next to Firefox, then open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on** and pick `manifest.json` in the exported folder. Firefox drops temporary add-ons on restart, so repeat this until the extension is published on AMO. Safari is not supported yet because Safari extensions must ship through the App Store.
+Firefox: install directly from Mozilla Add-ons (pending AMO approval) or download `libreget-firefox-extension.zip` from [libreget-extension releases](https://github.com/OpenSelena/libreget-extension/releases/latest). For temporary testing: **Settings → Plugins → Browser extension → Update / Install** next to Firefox, then open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on** and pick `manifest.json` in the exported folder. Safari is not supported yet because Safari extensions must ship through the App Store.
 
 Manual pairing: if **Pair extension** times out, open the extension's options page (right-click the icon → Options), then in LibreGet reveal and copy the **Pairing token** and paste it into the options page. The endpoint URL is detected automatically. The app listens on `127.0.0.1` ports 47720 to 47729 and the token is generated per install, so nothing leaves your machine.
 

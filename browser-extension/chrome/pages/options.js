@@ -237,6 +237,23 @@ if (typeof document !== "undefined") {
   const endpointHint = document.getElementById("endpoint-hint");
   const advancedDetails = document.getElementById("advanced");
   const autoCaptureCookiesInput = document.getElementById("auto-capture-cookies");
+  const themeToggle = document.getElementById("theme-toggle");
+
+  if (themeToggle) {
+    try {
+      const savedTheme = localStorage.getItem("libreget-extension-theme");
+      if (savedTheme) {
+        document.documentElement.setAttribute("data-theme", savedTheme);
+      }
+      themeToggle.addEventListener("click", () => {
+        const isDark = document.documentElement.getAttribute("data-theme") === "dark" ||
+          (!document.documentElement.getAttribute("data-theme") && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        const next = isDark ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", next);
+        localStorage.setItem("libreget-extension-theme", next);
+      });
+    } catch {}
+  }
 
   const FALLBACK_ENDPOINT = "http://127.0.0.1:47720";
 
@@ -275,8 +292,8 @@ if (typeof document !== "undefined") {
     stopPairPolling();
   }
 
-  async function tryAutoPair() {
-    const result = await autoPair().catch(() => ({ ok: false }));
+  async function tryAutoPair({ force = false } = {}) {
+    const result = await autoPair({ force }).catch(() => ({ ok: false }));
     if (!result?.ok) return false;
     if (result.reason === "already-paired") {
       stopPairPolling();
@@ -411,7 +428,7 @@ if (typeof document !== "undefined") {
   if (pairNowBtn) {
     pairNowBtn.addEventListener("click", async () => {
       setStatus("Trying to pair automatically…");
-      const paired = await tryAutoPair();
+      const paired = await tryAutoPair({ force: true });
       if (paired) return;
       setStatus(
         "No open pairing window found. In LibreGet, go to Settings → Network → Browser extension and click \"Pair extension\", then try again (or just wait — this page keeps retrying).",
@@ -782,7 +799,7 @@ if (typeof document !== "undefined") {
   // The tables are advanced settings: build them the first time the section is
   // opened, not on every visit to the pairing page.
   if (captureDetails) {
-    captureDetails.addEventListener("toggle", async () => {
+    const loadRulesOnce = async () => {
       if (!captureDetails.open || rulesLoaded) return;
       rulesLoaded = true;
       try {
@@ -790,6 +807,8 @@ if (typeof document !== "undefined") {
       } catch {
         renderRules(defaultCaptureRules());
       }
-    });
+    };
+    captureDetails.addEventListener("toggle", loadRulesOnce);
+    if (captureDetails.open) loadRulesOnce();
   }
 }

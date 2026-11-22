@@ -15,7 +15,10 @@ export function buildLibregetSchemeUrl(url) {
   if (trimmed.startsWith("magnet:") || trimmed.startsWith("p2p:")) {
     return `libreget:${trimmed}`;
   }
-  const withoutProtocol = trimmed.replace(/^https?:\/\//i, "");
+  if (trimmed.startsWith("http://")) {
+    return `${LIBREGET_SCHEME}http://${trimmed.slice(7)}`;
+  }
+  const withoutProtocol = trimmed.replace(/^https:\/\//i, "");
   if (!withoutProtocol) {
     return null;
   }

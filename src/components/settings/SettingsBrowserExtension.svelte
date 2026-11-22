@@ -213,6 +213,21 @@
           {rotating ? $t("settings.bridge.rotating") : $t("settings.bridge.rotate")}
         </button>
       </div>
+      <div class="divider"></div>
+      <div class="setting-row">
+        <div class="setting-col">
+          <span class="setting-label">Official repository</span>
+          <span class="setting-hint">Download release zips (v0.4.5), report issues, or inspect source code.</span>
+        </div>
+        <a
+          class="bridge-action"
+          href="https://github.com/OpenSelena/libreget-extension"
+          target="_blank"
+          rel="noreferrer"
+        >
+          GitHub
+        </a>
+      </div>
     {/if}
   </div>
 </section>
@@ -247,6 +262,9 @@
     border-radius: 8px;
     font: inherit;
     cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
   }
   .bridge-action:hover { background: rgba(255, 255, 255, 0.08); }
   .bridge-action:disabled { opacity: 0.5; cursor: not-allowed; }

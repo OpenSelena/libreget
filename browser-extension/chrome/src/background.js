@@ -13,6 +13,7 @@ import {
 } from "./deep-search-toggle.js";
 import { loadH264State, isH264Enabled, isBlock60, setH264 } from "./h264-toggle.js";
 import { registerContextMenu, getContextMenuId } from "./context-menu.js";
+import { loadOpenAppState, isOpenAppEnabled } from "./open-app-toggle.js";
 import { openLibregetScheme } from "./send-via-scheme.js";
 import { isSyntheticManifestUrl } from "./synthetic-manifest.js";
 import {
@@ -182,6 +183,7 @@ if (menusApi?.onClicked) {
       url,
       platform: "generic",
       referer: tab?.url || "",
+      openApp: isOpenAppEnabled(),
     });
 
     if (result.ok) {
@@ -192,6 +194,7 @@ if (menusApi?.onClicked) {
 
 chrome.runtime.onStartup.addListener(() => {
   registerContextMenu();
+  loadOpenAppState().catch(() => {});
   refreshActiveTab().catch(() => {});
   void runAutoPairTick();
   void ensureAutoPairAlarm();
@@ -210,6 +213,7 @@ if (chrome.commands && chrome.commands.onCommand) {
           url: tab.url,
           platform: detected.platform,
           referer: tab.url,
+          openApp: isOpenAppEnabled(),
         });
         if (result?.ok && tab.id !== undefined) {
           actionFeedback.showSuccessBadge(tab.id);
@@ -382,7 +386,7 @@ function updateBadge(tabId) {
   }).catch(() => {});
   chrome.action.setBadgeBackgroundColor({
     tabId,
-    color: "#F04E23",
+    color: "#FF9F0A",
   }).catch(() => {});
 }
 

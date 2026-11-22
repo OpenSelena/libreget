@@ -86,8 +86,28 @@ async function init() {
     render();
   });
 
-  toggle.addEventListener("change", () => {
+  toggle.addEventListener("change", async () => {
     const requested = toggle.checked;
+    if (requested && chrome.permissions?.request) {
+      try {
+        const granted = await chrome.permissions.request({ origins: ["*://*/*"] });
+        if (!granted) {
+          toggle.checked = false;
+          if (currentData) {
+            currentData.snifferEnabled = false;
+            render();
+          }
+          return;
+        }
+      } catch {
+        toggle.checked = false;
+        if (currentData) {
+          currentData.snifferEnabled = false;
+          render();
+        }
+        return;
+      }
+    }
     chrome.runtime.sendMessage({ type: "toggleSniffer", enabled: requested }, (response) => {
       const effective = response?.enabled ?? requested;
       if (toggle.checked !== effective) toggle.checked = effective;
@@ -511,6 +531,9 @@ async function sendBatch(groups) {
     }
     msg.openApp = isOpenAppEnabled();
 
+    const headers = extractSendableHeaders(group.master.requestHeaders);
+    if (headers) msg.headers = headers;
+
     try {
       await new Promise((resolve) => {
         chrome.runtime.sendMessage(msg, (response) => {
@@ -573,6 +596,11 @@ function pickBestMedia(media) {
   const videoItems = media.filter(m => m.mediaType === "video" && isListableMedia(m));
   if (videoItems.length > 0) {
     return videoItems.reduce((best, m) => m.contentLength > best.contentLength ? m : best, videoItems[0]);
+  }
+
+  const audioItems = media.filter(m => m.mediaType === "audio" && isListableMedia(m));
+  if (audioItems.length > 0) {
+    return audioItems.reduce((best, m) => (m.contentLength > best.contentLength ? m : best), audioItems[0]);
   }
 
   // A DASH manifest carries no useful size, so it can only be picked by recency
