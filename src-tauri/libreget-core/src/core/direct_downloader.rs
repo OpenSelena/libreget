@@ -6,11 +6,11 @@ use std::time::Duration;
 
 use anyhow::anyhow;
 use futures::StreamExt;
-use tokio::sync::{Semaphore, mpsc};
+use tokio::sync::{mpsc, Semaphore};
 use tokio_util::sync::CancellationToken;
 
 use crate::core::http_fetcher::{
-    HttpFetcher, HttpFetcherConfig, get_global_max_concurrent_segments, probe_remote,
+    get_global_max_concurrent_segments, probe_remote, HttpFetcher, HttpFetcherConfig,
 };
 use crate::core::media_signature::{looks_like_html, sniff_media_format};
 use crate::models::progress::ProgressUpdate;

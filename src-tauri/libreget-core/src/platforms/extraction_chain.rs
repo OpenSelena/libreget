@@ -1,7 +1,7 @@
 use std::future::Future;
 use std::time::{Duration, Instant};
 
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, Result};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Failure {
@@ -134,25 +134,19 @@ mod tests {
     #[tokio::test]
     async fn recoverable_error_tries_next_method_but_rate_limit_does_not() {
         let mut chain = ExtractionChain::new();
-        assert!(
-            chain
-                .attempt::<()>("one", async { Err(anyhow!("empty")) })
-                .await
-                .is_none()
-        );
+        assert!(chain
+            .attempt::<()>("one", async { Err(anyhow!("empty")) })
+            .await
+            .is_none());
         assert_eq!(chain.attempt("two", async { Ok(42) }).await, Some(42));
-        assert!(
-            chain
-                .attempt::<()>("three", async { Err(anyhow!("HTTP Error 429")) })
-                .await
-                .is_none()
-        );
-        assert!(
-            chain
-                .attempt::<()>("four", async { panic!("must not poll") })
-                .await
-                .is_none()
-        );
+        assert!(chain
+            .attempt::<()>("three", async { Err(anyhow!("HTTP Error 429")) })
+            .await
+            .is_none());
+        assert!(chain
+            .attempt::<()>("four", async { panic!("must not poll") })
+            .await
+            .is_none());
         assert!(chain.error().to_string().contains("429"));
     }
 }
