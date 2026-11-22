@@ -70,6 +70,6 @@ describe('nami metadata extraction', () => {
     expect(meta).not.toBeNull();
     expect(meta?.name).toBe('OpenAI');
     expect(meta?.avatar).toBe('https://pbs.twimg.com/avatar.jpg');
-    expect(meta?.meta).toContain('5,000,000 followers');
+    expect(meta?.meta).toContain(`${(5_000_000).toLocaleString()} followers`);
   });
 });
