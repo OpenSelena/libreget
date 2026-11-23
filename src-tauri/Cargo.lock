@@ -4004,7 +4004,7 @@ dependencies = [
  "once_cell",
  "open",
  "qrcode",
- "rand 0.10.2",
+ "rand 0.10.4",
  "regex",
  "reqwest 0.12.28",
  "rusqlite",
@@ -4096,7 +4096,7 @@ dependencies = [
  "open",
  "ort",
  "qrcode",
- "rand 0.10.2",
+ "rand 0.10.4",
  "regex",
  "reqwest 0.12.28",
  "resvg",
@@ -4153,7 +4153,7 @@ dependencies = [
  "libreget-core",
  "libreget-plugin-sdk",
  "m3u8-rs",
- "rand 0.10.2",
+ "rand 0.10.4",
  "regex",
  "reqwest 0.12.28",
  "sanitize-filename",
@@ -4538,7 +4538,7 @@ dependencies = [
  "log",
  "md-5 0.11.0",
  "nom 8.0.0",
- "rand 0.10.2",
+ "rand 0.10.4",
  "rangemap",
  "sha2 0.11.0",
  "stringprep",
@@ -6041,7 +6041,7 @@ dependencies = [
  "bytes",
  "getrandom 0.4.1",
  "lru-slab",
- "rand 0.10.2",
+ "rand 0.10.4",
  "rand_pcg",
  "ring",
  "rustc-hash 2.1.1",
@@ -6112,9 +6112,9 @@ dependencies = [
 
 [[package]]
 name = "rand"
-version = "0.10.2"
+version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7f5fa3a058cd35567ef9bfa5e75732bee0f9e4c55fa90477bef2dfcdbc4be80"
+checksum = "8f6fa277c67e6ea590466f04c3fe82cb509f0864fe470643e5570de9514a9b11"
 dependencies = [
  "chacha20",
  "getrandom 0.4.1",
@@ -7802,7 +7802,7 @@ checksum = "14a226bfb8189ec4ab2c1936e66330ad06c44d9f6c54a674338208491dee177f"
 dependencies = [
  "log",
  "notify-rust",
- "rand 0.10.2",
+ "rand 0.10.4",
  "serde",
  "serde_json",
  "serde_repr",
@@ -8672,7 +8672,7 @@ dependencies = [
  "httparse",
  "log",
  "native-tls",
- "rand 0.10.2",
+ "rand 0.10.4",
  "sha1 0.11.0",
  "thiserror 2.0.18",
 ]
