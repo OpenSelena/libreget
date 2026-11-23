@@ -64,7 +64,7 @@
     "@tiptap/starter-kit": "^3.33.0",
     "@tiptap/suggestion": "^3.31.4",
     "@types/cytoscape": "^3.31.0",
-    "abcjs": "^6.7.2",
+    "abcjs": "^6.7.3",
     "cytoscape": "^3.34.4",
     "flowchart.js": "^1.18.1",
     "highlight.js": "^11.12.0",
