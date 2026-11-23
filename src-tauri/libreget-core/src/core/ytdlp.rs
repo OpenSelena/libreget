@@ -3155,6 +3155,37 @@ pub(crate) fn build_format_selector(
     }
 }
 
+fn build_download_format_args(
+    url: &str,
+    format_id: Option<&str>,
+    quality_height: Option<u32>,
+    mode: &str,
+    ffmpeg_available: bool,
+) -> Vec<String> {
+    // Xiaohongshu labels vertical video by its short edge. Filtering only
+    // height would exclude 2160×3840 when the user selects 2160p.
+    let short_edge = quality_height.filter(|height| {
+        *height > 0
+            && mode != "audio"
+            && format_id.is_none()
+            && matches!(
+                crate::platforms::Platform::from_url(url),
+                Some(crate::platforms::Platform::Other(platform)) if platform == "xiaohongshu"
+            )
+    });
+    let selector = build_format_selector(
+        format_id,
+        quality_height.filter(|_| short_edge.is_none()),
+        mode,
+        ffmpeg_available,
+    );
+    let mut args = vec!["-f".to_string(), selector];
+    if let Some(short_edge) = short_edge {
+        args.extend(["-S".to_string(), format!("res:{short_edge}")]);
+    }
+    args
+}
+
 #[allow(clippy::too_many_arguments)]
 pub async fn download_video(
     ytdlp: &Path,
@@ -3209,8 +3240,6 @@ pub async fn download_video(
     );
     let ffmpeg_available = ffmpeg_res.is_ok() || crate::core::ffmpeg::is_ffmpeg_available().await;
     let ffmpeg_location = find_ffmpeg_location_cached().await;
-
-    let format_selector = build_format_selector(format_id, quality_height, mode, ffmpeg_available);
 
     let dir_len = output_dir.to_string_lossy().len();
     let max_name = if cfg!(target_os = "windows") {
@@ -3324,9 +3353,9 @@ pub async fn download_video(
         log_hook::emit_log(dl_id, &line);
     }
 
-    let mut base_args = vec![
-        "-f".to_string(),
-        format_selector,
+    let mut base_args =
+        build_download_format_args(url, format_id, quality_height, mode, ffmpeg_available);
+    base_args.extend([
         // Um `yt-dlp.conf` do usuário não pode mudar o comportamento do app por
         // baixo dos panos; quem quer flags extras tem `extra_ytdlp_flags`.
         "--ignore-config".to_string(),
@@ -3342,7 +3371,7 @@ pub async fn download_video(
         "after_move:LIBREGET_FILEPATH:%(filepath)s".to_string(),
         "--no-quiet".to_string(),
         "--progress".to_string(),
-    ];
+    ]);
     base_args.extend(js_runtime_args());
 
     if mode == "audio" {
@@ -5310,10 +5339,37 @@ mod tests {
     }
 
     use super::{
-        build_format_selector, parse_fragment_progress, parse_planned_formats, parse_stream_info,
-        postprocess_phase, prepare_override_args, tuner_host_key, YoutubeExtractorArgs,
-        PROGRESS_TEMPLATE,
+        build_download_format_args, build_format_selector, parse_fragment_progress,
+        parse_planned_formats, parse_stream_info, postprocess_phase, prepare_override_args,
+        tuner_host_key, YoutubeExtractorArgs, PROGRESS_TEMPLATE,
     };
+
+    #[test]
+    fn xiaohongshu_format_args_use_short_edge_and_keep_explicit_formats() {
+        let note = "https://www.xiaohongshu.com/explore/0123456789abcdef01234567";
+        assert_eq!(
+            build_download_format_args(note, None, Some(2160), "auto", true),
+            ["-f", "bv*+ba[ext=m4a]/bv*+ba/b", "-S", "res:2160"]
+        );
+        assert_eq!(
+            build_download_format_args(note, Some("native-4k"), Some(2160), "auto", false),
+            ["-f", "native-4k/b[height<=2160]/b"]
+        );
+        assert_eq!(
+            build_download_format_args(note, None, Some(2160), "audio", true),
+            ["-f", "ba/b"]
+        );
+        assert_eq!(
+            build_download_format_args(
+                "https://example.org/watch",
+                None,
+                Some(2160),
+                "auto",
+                false
+            ),
+            ["-f", "b[height<=2160]/b"]
+        );
+    }
 
     #[test]
     fn format_selector_pairs_video_stream_with_audio_when_ffmpeg_available() {
