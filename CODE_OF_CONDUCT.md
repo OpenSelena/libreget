@@ -1,21 +1,9 @@
-# LibreGet Community Guidelines
+# Code of conduct
 
-OpenSelena maintains LibreGet as a welcoming, practical open-source project. Everyone taking part in [GitHub Issues](https://github.com/OpenSelena/libreget/issues), [Pull Requests](https://github.com/OpenSelena/libreget/pulls), [Discussions](https://github.com/OpenSelena/libreget/discussions), [Weblate translations](https://hosted.weblate.org/engage/libreget/), or the [OpenSelena Telegram channel](https://t.me/OpenSelena) agrees to follow these standards.
+LibreGet is built by contributors and translators working in public across [GitHub](https://github.com/OpenSelena/libreget), [Weblate](https://hosted.weblate.org/engage/libreget/), and [Telegram](https://t.me/OpenSelena). These spaces only work when people can ask questions, review code, and disagree without making things hostile.
 
-## Expected behavior
+Be direct and patient with each other. Not everyone here speaks English as a first language, and most contributors are donating their free time. If you disagree with a change or a design choice, talk about the code and the trade-offs, not the person who wrote it. If someone tells you a remark crossed a line, step back instead of doubling down.
 
-- **Keep feedback technical and constructive.** Disagree with designs, diffs, or implementation trade-offs rather than attacking people.
-- **Respect time and effort.** Provide reproducible steps in bug reports, read existing guidelines before opening large changes, and welcome first-time contributors and translators.
-- **Protect privacy.** Never share someone else's personal information, account details, cookies, tokens, or private messages in issues, logs, or screenshots.
+Harassment, slurs, personal attacks, doxxing, and deliberately derailing issues or chat threads will get your comments removed and your account blocked from the repository and community channels. Don't post anyone else's private information, tokens, or account data in bug reports or screenshots either.
 
-## Unacceptable behavior
-
-- Harassment, hate speech, intimidation, or personal insults in any project channel
-- Doxxing or publishing private credentials and personal data without consent
-- Trolling, spam, automated low-effort pull requests or issues, or bad-faith disruption of maintainers and contributors
-
-## Reporting and moderation
-
-If you encounter unacceptable behavior or spam in LibreGet's community spaces, contact the OpenSelena maintainers privately at [igect@vk.com](mailto:igect@vk.com) with links or context. Reports are handled confidentially by the project owners (`igect`, `ebnycuhie`).
-
-Maintainers may close or lock threads, hide or remove comments, reject disruptive pull requests, or block repeat offenders from the repository and community channels.
+If someone's behavior is a problem, email the maintainers privately at [igect@vk.com](mailto:igect@vk.com) with a link or description of what happened. The OpenSelena maintainers (`igect` and `ebnycuhie`) read every report confidentially and decide whether to issue a warning, lock a thread, or ban an account.
