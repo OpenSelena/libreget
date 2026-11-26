@@ -10,4 +10,4 @@ If someone is crossing the line or making things uncomfortable, email [igect@vk.
 
 ## Enforcement
 
-When someone breaks these rules, the maintainers (`igect` and `ebnycuhie`) can edit or remove comments, close or lock threads, or block accounts from the repo and chat following the Contributor Covenant guidelines.
+When someone breaks these rules, the maintainers can edit or remove comments, close or lock threads, or block accounts from the repo and chat following the Contributor Covenant guidelines.

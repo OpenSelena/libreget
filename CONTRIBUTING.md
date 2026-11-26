@@ -68,6 +68,6 @@ When you change documented user-facing behavior in [README.md](README.md), updat
 
 ## Pull requests and AI tools
 
-Write commit messages and PR descriptions in English ([Conventional Commits](https://www.conventionalcommits.org/) like `feat(scope): ...`, `fix: ...`, `docs: ...` is preferred), keep each PR focused on one change, and fill out the PR template with what changed for users and how you tested it. OpenSelena maintainers (`igect`, `ebnycuhie`) review and merge pull requests, and everyone taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md).
+Write commit messages and PR descriptions in English ([Conventional Commits](https://www.conventionalcommits.org/) like `feat(scope): ...`, `fix: ...`, `docs: ...` is preferred), keep each PR focused on one change, and fill out the PR template with what changed for users and how you tested it. Maintainers review and merge pull requests, and everyone taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 You can use AI tools when writing code or tests, as long as you read every line you send, ran the checks and tested the change in the running app yourself, tick the AI disclosure box in the PR template, and keep the diff small. Bug reports and security reports must also come from behavior you actually reproduced, not raw guesses from reading code.
