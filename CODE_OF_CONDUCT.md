@@ -1,9 +1,18 @@
-# Code of conduct
+# Code of Conduct
 
-LibreGet is built by contributors and translators working in public across [GitHub](https://github.com/OpenSelena/libreget), [Weblate](https://hosted.weblate.org/engage/libreget/), and [Telegram](https://t.me/OpenSelena). These spaces only work when people can ask questions, review code, and disagree without making things hostile.
+Applies to [Issues](https://github.com/OpenSelena/libreget/issues), [Pull Requests](https://github.com/OpenSelena/libreget/pulls), [Discussions](https://github.com/OpenSelena/libreget/discussions), [Weblate](https://hosted.weblate.org/engage/libreget/), and [Telegram](https://t.me/OpenSelena).
 
-Be direct and patient with each other. Not everyone here speaks English as a first language, and most contributors are donating their free time. If you disagree with a change or a design choice, talk about the code and the trade-offs, not the person who wrote it. If someone tells you a remark crossed a line, step back instead of doubling down.
+## Rules
 
-Harassment, slurs, personal attacks, doxxing, and deliberately derailing issues or chat threads will get your comments removed and your account blocked from the repository and community channels. Don't post anyone else's private information, tokens, or account data in bug reports or screenshots either.
+- Keep discussions on topic and focused on the code, bug report, or feature request.
+- Do not harass, insult, threaten, or attack other users or contributors.
+- Do not post spam, trolling, or off-topic noise in issues, pull requests, or chat.
+- Do not publish anyone else's personal information, account details, cookies, or tokens.
 
-If someone's behavior is a problem, email the maintainers privately at [igect@vk.com](mailto:igect@vk.com) with a link or description of what happened. The OpenSelena maintainers (`igect` and `ebnycuhie`) read every report confidentially and decide whether to issue a warning, lock a thread, or ban an account.
+## Reporting
+
+Report violations privately to [igect@vk.com](mailto:igect@vk.com) with links or screenshots of the incident.
+
+## Enforcement
+
+Maintainers (`igect`, `ebnycuhie`) may edit or delete comments, lock or close threads, reject pull requests, and ban accounts from the repository and community channels.

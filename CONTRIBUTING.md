@@ -1,12 +1,14 @@
 # Contributing to LibreGet
 
-Thanks for helping out. Questions and quick help belong in [Discussions](https://github.com/OpenSelena/libreget/discussions) or [Telegram](https://t.me/OpenSelena), bugs and feature ideas go to [Issues](https://github.com/OpenSelena/libreget/issues/new/choose), and security problems should be reported privately through [SECURITY.md](SECURITY.md).
+- Questions and help: [Discussions](https://github.com/OpenSelena/libreget/discussions) or [Telegram](https://t.me/OpenSelena)
+- Bugs and feature requests: [Issues](https://github.com/OpenSelena/libreget/issues/new/choose)
+- Security vulnerabilities: [SECURITY.md](SECURITY.md) (do not open a public issue)
 
-## Getting oriented
+## Before writing code
 
-Read [GLOSSARY.md](GLOSSARY.md), [DESIGN.md](DESIGN.md), and [docs/adr/](docs/adr) before making architectural changes so naming and UI tokens stay consistent. Before starting work on an open issue, leave a comment so nobody duplicates the work. If you're planning a big feature or plugin change, open a [discussion](https://github.com/OpenSelena/libreget/discussions) first.
+Read [GLOSSARY.md](GLOSSARY.md), [DESIGN.md](DESIGN.md), and [docs/adr/](docs/adr) for project naming and UI tokens. Comment on an issue before working on it to avoid duplicate PRs, and open a [discussion](https://github.com/OpenSelena/libreget/discussions) before starting large features or plugin changes.
 
-If you just want to translate the interface, do it on [Weblate](https://hosted.weblate.org/engage/libreget/) in your browser—no local build needed.
+UI translations are handled on [Weblate](https://hosted.weblate.org/engage/libreget/) in the browser without a local build.
 
 ## Setup
 
