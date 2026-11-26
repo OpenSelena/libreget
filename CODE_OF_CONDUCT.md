@@ -1,18 +1,13 @@
-# Code of Conduct
+# Code of conduct
 
-Applies to [Issues](https://github.com/OpenSelena/libreget/issues), [Pull Requests](https://github.com/OpenSelena/libreget/pulls), [Discussions](https://github.com/OpenSelena/libreget/discussions), [Weblate](https://hosted.weblate.org/engage/libreget/), and [Telegram](https://t.me/OpenSelena).
+LibreGet follows the [Contributor Covenant v2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct/).
 
-## Rules
-
-- Keep discussions on topic and focused on the code, bug report, or feature request.
-- Do not harass, insult, threaten, or attack other users or contributors.
-- Do not post spam, trolling, or off-topic noise in issues, pull requests, or chat.
-- Do not publish anyone else's personal information, account details, cookies, or tokens.
+Keep it simple: treat people with respect, give others the benefit of the doubt, and keep feedback on the code or the bug rather than going after the person behind it. No harassment, insults, or sharing anyone's private info. This goes for everywhere around LibreGet—issues, pull requests, discussions, Weblate translations, and our Telegram chat.
 
 ## Reporting
 
-Report violations privately to [igect@vk.com](mailto:igect@vk.com) with links or screenshots of the incident.
+If someone is crossing the line or making things uncomfortable, email [igect@vk.com](mailto:igect@vk.com) and tell us what happened. We read every report privately and keep it between us.
 
 ## Enforcement
 
-Maintainers (`igect`, `ebnycuhie`) may edit or delete comments, lock or close threads, reject pull requests, and ban accounts from the repository and community channels.
+When someone breaks these rules, the maintainers (`igect` and `ebnycuhie`) can edit or remove comments, close or lock threads, or block accounts from the repo and chat following the Contributor Covenant guidelines.
