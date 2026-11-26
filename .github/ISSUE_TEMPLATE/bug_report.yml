@@ -6,14 +6,15 @@ body:
     attributes:
       value: |
         Thanks for reporting a bug. Please fill in the fields below so we can reproduce it.
+        Accessibility barriers can also be reported here (see ACCESSIBILITY.md).
         For security issues, do not use this form — see SECURITY.md.
 
   - type: input
     id: version
     attributes:
       label: LibreGet version
-      description: Shown in Settings > About, or via `libreget --version`.
-      placeholder: "0.4.0"
+      description: Shown in Settings > About, or via `libreget-cli --version`.
+      placeholder: "1.0.0"
     validations:
       required: true
 

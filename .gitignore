@@ -264,6 +264,9 @@ remake/shots/
 !README*.md
 !AGENTS.md
 !SECURITY.md
+!CONTRIBUTING.md
+!ACCESSIBILITY.md
+!CODE_OF_CONDUCT.md
 !DESIGN.md
 !.github/**/*.md
 !docs/agents/**/*.md

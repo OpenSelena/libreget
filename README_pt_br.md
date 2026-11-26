@@ -561,6 +561,8 @@ Assinatura de código gratuita no Windows fornecida por [SignPath.io](https://ab
 
 Relatos de bug e pull requests vão para [Issues](https://github.com/OpenSelena/libreget/issues) e [Pull requests](https://github.com/OpenSelena/libreget/pulls). Perguntas e ajuda rápida ficam no [Telegram](https://t.me/OpenSelena).
 
+[Guia de contribuição](CONTRIBUTING.md) · [Acessibilidade](ACCESSIBILITY.md) · [Código de conduta](CODE_OF_CONDUCT.md) · [Política de segurança](SECURITY.md) ([igect@vk.com](mailto:igect@vk.com))
+
 As traduções são feitas no [Weblate](https://hosted.weblate.org/engage/libreget/). Escolha o seu idioma e traduza pelo navegador. Novas strings aparecem lá algumas horas depois de entrarem na `main`.
 
 O LibreGet é construído sobre [yt-dlp](https://github.com/yt-dlp/yt-dlp), [FFmpeg](https://ffmpeg.org/), [gallery-dl](https://github.com/mikf/gallery-dl), [whisper.cpp](https://github.com/ggerganov/whisper.cpp), [aria2](https://aria2.github.io/), [SponsorBlock](https://sponsor.ajay.app/), [Return YouTube Dislike](https://returnyoutubedislike.com/), [FxTwitter](https://github.com/FixTweet/FxTwitter), [Spicetify](https://spicetify.app/) e [Tauri](https://tauri.app/). Obrigado a todo mundo que os mantém.

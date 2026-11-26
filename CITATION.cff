@@ -1,0 +1,36 @@
+cff-version: 1.2.0
+message: "If you write about or build on LibreGet, please cite it as below."
+title: LibreGet
+abstract: >-
+  Free, open source desktop download manager and media toolbox for Windows,
+  macOS, and Linux built with Tauri 2, Rust, and Svelte 5. Supports online
+  courses, social platforms, torrents, yt-dlp, local transcription, media
+  conversion, and a local MCP server.
+type: software
+authors:
+  - name: OpenSelena
+    website: "https://github.com/OpenSelena"
+repository-code: "https://github.com/OpenSelena/libreget"
+url: "https://github.com/OpenSelena/libreget"
+license: GPL-3.0-only
+keywords:
+  - download-manager
+  - media-downloader
+  - course-downloader
+  - yt-dlp
+  - yt-dlp-gui
+  - mcp-server
+  - tauri
+  - rust
+  - svelte
+references:
+  - type: software
+    title: OmniGet
+    authors:
+      - family-names: Leandro
+        given-names: Antonio
+        alias: tonhowtf
+        website: "https://tonho.wtf"
+    repository-code: "https://github.com/tonhowtf/omniget"
+    url: "https://getomniget.com"
+    license: GPL-3.0-only

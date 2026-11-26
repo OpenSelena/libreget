@@ -561,6 +561,8 @@ Windows 免费代码签名由 [SignPath.io](https://about.signpath.io) 提供，
 
 Bug 报告和 Pull Request 请提到 [Issues](https://github.com/OpenSelena/libreget/issues) 和 [Pull requests](https://github.com/OpenSelena/libreget/pulls)。提问和快速求助在 [Telegram](https://t.me/OpenSelena)。
 
+[贡献指南](CONTRIBUTING.md) · [无障碍说明](ACCESSIBILITY.md) · [行为准则](CODE_OF_CONDUCT.md) · [安全策略](SECURITY.md) ([igect@vk.com](mailto:igect@vk.com))
+
 翻译在 [Weblate](https://hosted.weblate.org/engage/libreget/) 上进行。选择你的语言，直接在浏览器里翻译。新字符串合入 `main` 几小时后就会出现在那里。
 
 LibreGet 建立在 [yt-dlp](https://github.com/yt-dlp/yt-dlp)、[FFmpeg](https://ffmpeg.org/)、[gallery-dl](https://github.com/mikf/gallery-dl)、[whisper.cpp](https://github.com/ggerganov/whisper.cpp)、[aria2](https://aria2.github.io/)、[SponsorBlock](https://sponsor.ajay.app/)、[Return YouTube Dislike](https://returnyoutubedislike.com/)、[FxTwitter](https://github.com/FixTweet/FxTwitter)、[Spicetify](https://spicetify.app/) 和 [Tauri](https://tauri.app/) 之上。感谢所有维护这些项目的人。

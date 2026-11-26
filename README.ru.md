@@ -711,7 +711,9 @@ pnpm tauri build --config '{"bundle":{"createUpdaterArtifacts":false}}'
 
 ## Участие и переводы
 
-Сообщения об ошибках и pull request'ы — в [Issues](https://github.com/OpenSelena/libreget/issues) и [Pull requests](https://github.com/OpenSelena/libreget/pulls). Вопросы и быстрая помощь — в [Telegram](https://t.me/OpenSelena). Вопросы безопасности и сообщения об уязвимостях: [SECURITY.md](SECURITY.md) или [igect@vk.com](mailto:igect@vk.com).
+Сообщения об ошибках и pull request'ы — в [Issues](https://github.com/OpenSelena/libreget/issues) и [Pull requests](https://github.com/OpenSelena/libreget/pulls). Вопросы и быстрая помощь — в [Telegram](https://t.me/OpenSelena).
+
+[Руководство по участию](CONTRIBUTING.md) · [Доступность](ACCESSIBILITY.md) · [Кодекс поведения](CODE_OF_CONDUCT.md) · [Политика безопасности](SECURITY.md) ([igect@vk.com](mailto:igect@vk.com))
 
 Переводы ведутся на [Weblate](https://hosted.weblate.org/engage/libreget/). Выберите свой язык и переводите в браузере. Новые строки появляются там через несколько часов после попадания в `main`.
 

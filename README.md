@@ -718,7 +718,9 @@ LibreGet is a fork of [OmniGet](https://github.com/tonhowtf/omniget) by [Antonio
 
 ## Contributing and translations
 
-Bug reports and pull requests go to [Issues](https://github.com/OpenSelena/libreget/issues) and [Pull requests](https://github.com/OpenSelena/libreget/pulls). Questions and quick help live on [Telegram](https://t.me/OpenSelena). Security inquiries and vulnerability reports: [SECURITY.md](SECURITY.md) or [igect@vk.com](mailto:igect@vk.com).
+Bug reports and pull requests go to [Issues](https://github.com/OpenSelena/libreget/issues) and [Pull requests](https://github.com/OpenSelena/libreget/pulls). Questions and quick help live on [Telegram](https://t.me/OpenSelena).
+
+[Contributing guide](CONTRIBUTING.md) · [Accessibility](ACCESSIBILITY.md) · [Code of conduct](CODE_OF_CONDUCT.md) · [Security policy](SECURITY.md) ([igect@vk.com](mailto:igect@vk.com))
 
 Translations are managed on [Weblate](https://hosted.weblate.org/engage/libreget/). Pick your language and translate in the browser. New strings appear there a few hours after they land in `main`.
 

@@ -711,7 +711,9 @@ pnpm tauri build --config '{"bundle":{"createUpdaterArtifacts":false}}'
 
 ## コントリビュートと翻訳
 
-バグ報告とプルリクエストは [Issues](https://github.com/OpenSelena/libreget/issues) と [Pull requests](https://github.com/OpenSelena/libreget/pulls) にお願いします。質問やちょっとしたヘルプは [Telegram](https://t.me/OpenSelena) で受け付けています。セキュリティに関する問い合わせや脆弱性の報告：[SECURITY.md](SECURITY.md) または [igect@vk.com](mailto:igect@vk.com)。
+バグ報告とプルリクエストは [Issues](https://github.com/OpenSelena/libreget/issues) と [Pull requests](https://github.com/OpenSelena/libreget/pulls) にお願いします。質問やちょっとしたヘルプは [Telegram](https://t.me/OpenSelena) で受け付けています。
+
+[コントリビュートガイド](CONTRIBUTING.md) · [アクセシビリティ](ACCESSIBILITY.md) · [行動規範](CODE_OF_CONDUCT.md) · [セキュリティポリシー](SECURITY.md) ([igect@vk.com](mailto:igect@vk.com))
 
 翻訳は [Weblate](https://hosted.weblate.org/engage/libreget/) で管理しています。言語を選んで、ブラウザ上で翻訳してください。新しい文字列は、`main` に取り込まれてから数時間後にそこに表示されます。
 
