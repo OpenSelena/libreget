@@ -12,22 +12,12 @@ LibreGet does not accept changes that bypass DRM, break paywalls, or expose user
 
 ## Setup
 
-<p>
-  <a href="https://rustup.rs/"><img src="https://cdn.simpleicons.org/rust/CE422B" width="32" height="32" alt="Rust" title="Rust 1.97.0" /></a>
-  &nbsp;&nbsp;&nbsp;
-  <a href="https://nodejs.org/"><img src="https://cdn.simpleicons.org/nodedotjs/5FA04E" width="32" height="32" alt="Node.js" title="Node.js LTS (18+)" /></a>
-  &nbsp;&nbsp;&nbsp;
-  <a href="https://pnpm.io/"><img src="https://cdn.simpleicons.org/pnpm/F69220" width="32" height="32" alt="pnpm" title="pnpm 10.29.3" /></a>
-  &nbsp;&nbsp;&nbsp;
-  <a href="https://www.npmjs.com/"><img src="https://cdn.simpleicons.org/npm/CB3837" width="32" height="32" alt="npm" title="npm (bundled with Node.js)" /></a>
-</p>
-
 | Tool | Version | Notes |
 |---|---|---|
-| [Rust](https://rustup.rs/) | `1.97.0` | Pinned in [rust-toolchain.toml](rust-toolchain.toml) (`rustfmt` + `clippy`) so host and plugin ABIs match |
-| [Node.js](https://nodejs.org/) | `18+` (LTS) | CI runs `lts/*` in [.github/workflows/ci.yml](.github/workflows/ci.yml) |
-| [pnpm](https://pnpm.io/) | `10.29.3` | Set via `packageManager` in [package.json](package.json); use `corepack enable` |
-| [npm](https://www.npmjs.com/) | Bundled with Node | Fallback to install `pnpm@10.29.3` globally (`npm i -g pnpm@10.29.3`); do not use `npm install` in the repo (`pnpm-lock.yaml` is authoritative) |
+| <img src="https://cdn.simpleicons.org/rust/CE422B" width="18" height="18" align="center" alt="Rust" /> [Rust](https://rustup.rs/) | `1.97.0` | Pinned in [rust-toolchain.toml](rust-toolchain.toml) (`rustfmt` + `clippy`) so host and plugin ABIs match |
+| <img src="https://api.iconify.design/logos/nodejs-icon.svg" width="18" height="18" align="center" alt="Node.js" /> [Node.js](https://nodejs.org/) | `18+` (LTS) | CI runs `lts/*` in [.github/workflows/ci.yml](.github/workflows/ci.yml) |
+| <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/pnpm/pnpm-original.svg" width="18" height="18" align="center" alt="pnpm" /> [pnpm](https://pnpm.io/) | `10.29.3` | Set via `packageManager` in [package.json](package.json); use `corepack enable` |
+| <img src="https://api.iconify.design/logos/npm.svg" height="11" align="center" alt="npm" /> [npm](https://www.npmjs.com/) | Bundled with Node | Fallback to install `pnpm@10.29.3` globally (`npm i -g pnpm@10.29.3`); do not use `npm install` in the repo (`pnpm-lock.yaml` is authoritative) |
 
 On Linux, install the WebKit/Tauri system libraries first (same packages CI installs in `debian:bookworm` and `ubuntu-latest`):
 
