@@ -46,7 +46,13 @@ leitor pdf, flashcards anki, repetição espaçada, player de música, spicetify
 </p>
 
 <p align="center">
-  <mark><b>&nbsp;Criado por <a href="https://github.com/igect">@igect</a> · Fork do <a href="https://github.com/tonhowtf/omniget">OmniGet</a>&nbsp;</b></mark>
+  <a href="https://github.com/igect">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="assets/readme/created-by-dark.svg" />
+      <source media="(prefers-color-scheme: light)" srcset="assets/readme/created-by-light.svg" />
+      <img src="assets/readme/created-by-light.svg" alt="Criado por @igect" height="44" />
+    </picture>
+  </a>
 </p>
 
 <p align="center">

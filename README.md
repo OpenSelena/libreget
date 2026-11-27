@@ -55,7 +55,13 @@ twitch-downloader, subtitle-downloader, epub-reader, spaced-repetition
 </p>
 
 <p align="center">
-  <mark><b>&nbsp;Created by <a href="https://github.com/igect">@igect</a> · A fork of <a href="https://github.com/tonhowtf/omniget">OmniGet</a>&nbsp;</b></mark>
+  <a href="https://github.com/igect">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="assets/readme/created-by-dark.svg" />
+      <source media="(prefers-color-scheme: light)" srcset="assets/readme/created-by-light.svg" />
+      <img src="assets/readme/created-by-light.svg" alt="Created by @igect" height="44" />
+    </picture>
+  </a>
 </p>
 
 ---
