@@ -56,7 +56,7 @@ twitch-downloader, subtitle-downloader, epub-reader, spaced-repetition
 </p>
 
 <p align="center">
-  <sub><a href="https://github.com/igect">igect</a> が GPL-3.0 のもとでメンテナンスしています</sub>
+  <mark><b>&nbsp;<a href="https://github.com/igect">@igect</a> が作成 · <a href="https://github.com/tonhowtf/omniget">OmniGet</a> のフォーク&nbsp;</b></mark>
 </p>
 
 <p align="center">

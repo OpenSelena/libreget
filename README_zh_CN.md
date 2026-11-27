@@ -46,7 +46,7 @@ spicetify, 下载管理器, tauri, rust, svelte.
 </p>
 
 <p align="center">
-  <sub>由 <a href="https://github.com/igect">igect</a> 在 GPL-3.0 协议下维护</sub>
+  <mark><b>&nbsp;由 <a href="https://github.com/igect">@igect</a> 创建 · 派生自 <a href="https://github.com/tonhowtf/omniget">OmniGet</a>&nbsp;</b></mark>
 </p>
 
 <p align="center">

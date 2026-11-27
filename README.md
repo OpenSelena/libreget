@@ -54,6 +54,10 @@ twitch-downloader, subtitle-downloader, epub-reader, spaced-repetition
   <a href="#the-tools-section-158-tools-in-25-categories"><img src="https://img.shields.io/badge/See_the_158_tools-→-3D5BF0?style=for-the-badge" alt="See the Tools section" height="40" /></a>
 </p>
 
+<p align="center">
+  <mark><b>&nbsp;Created by <a href="https://github.com/igect">@igect</a> · A fork of <a href="https://github.com/tonhowtf/omniget">OmniGet</a>&nbsp;</b></mark>
+</p>
+
 ---
 
 ## Contents

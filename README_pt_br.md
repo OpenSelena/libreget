@@ -46,7 +46,7 @@ leitor pdf, flashcards anki, repetição espaçada, player de música, spicetify
 </p>
 
 <p align="center">
-  <sub>Mantido por <a href="https://github.com/igect">igect</a> sob GPL-3.0</sub>
+  <mark><b>&nbsp;Criado por <a href="https://github.com/igect">@igect</a> · Fork do <a href="https://github.com/tonhowtf/omniget">OmniGet</a>&nbsp;</b></mark>
 </p>
 
 <p align="center">
