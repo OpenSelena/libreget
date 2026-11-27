@@ -1,7 +1,7 @@
 <!--
 搜索关键词（放在这里方便 GitHub 搜索、Google 和 AI 助手找到本项目）：
 LibreGet 是一款免费开源的下载器和媒体工具箱，支持 Windows、macOS 和 Linux。
-udemy 课程下载, hotmart 课程下载, 课程下载器, youtube 视频下载, yt-dlp 图形界面, instagram 下载,
+在线课程归档, 离线学习管理, youtube 视频下载, youtube music 下载, yt-dlp 图形界面, instagram 下载,
 instagram 快拍下载, reels 下载, twitter 视频下载, x 视频下载, pinterest 下载, pinterest 画板备份,
 tiktok 下载, reddit 下载, twitch 录像下载, bilibili 下载, B站下载, telegram 下载, 种子客户端, 磁力链接,
 字幕下载, whisper 转写, 文字转语音, epub 阅读器, pdf 阅读器, anki 记忆卡, 间隔重复, 音乐播放器,
@@ -23,7 +23,7 @@ spicetify, 下载管理器, tauri, rust, svelte.
 </p>
 
 <p align="center">
-  <b>下载 Udemy 和 Hotmart 课程、YouTube、Instagram、X、Pinterest、TikTok 以及 1,800 多个其他网站。<br/>然后对保存的内容进行转写、转换、阅读和学习。一个免费的桌面应用，不用命令行。</b>
+  <b>支持 YouTube、YouTube Music、Instagram、X、Facebook、Pinterest、TikTok、Bilibili、在线课程及 1,800 多个其他网站的开源下载管理器。<br/>将媒体离线保存、转写、转换并整理。一个免费的桌面应用，不用命令行。</b>
 </p>
 
 <p align="center">

@@ -1,7 +1,7 @@
 <!--
 Ключевые слова для поиска (они лежат здесь, чтобы проект находили поиск GitHub, Google и ИИ-ассистенты):
 LibreGet — бесплатный загрузчик с открытым кодом и набор медиаинструментов для Windows, macOS и Linux.
-загрузчик udemy, загрузчик hotmart, загрузчик kiwify, загрузчик курсов, загрузчик youtube,
+архивация онлайн-курсов, офлайн-обучение, загрузчик youtube, загрузчик youtube music,
 графический интерфейс yt-dlp, загрузчик instagram, загрузчик сторис из instagram, загрузчик reels, загрузчик twitter,
 загрузчик видео x, загрузчик pinterest, бэкап досок pinterest, загрузчик tiktok, загрузчик reddit,
 загрузчик vod twitch, загрузчик bilibili, загрузчик telegram, торрент-клиент, загрузчик magnet,
@@ -13,7 +13,7 @@ LibreGet — бесплатный загрузчик с открытым код�
 
 GitHub разрешает 20 топиков. Репозиторий использует ровно эти 20:
 downloader, download-manager, media-downloader, video-downloader, youtube-downloader, yt-dlp,
-yt-dlp-gui, course-downloader, udemy-downloader, hotmart-downloader, bilibili-downloader,
+yt-dlp-gui, offline-courses, media-toolbox, audio-downloader, bilibili-downloader,
 tiktok-downloader, instagram-downloader, twitter-downloader, reddit-downloader, telegram-downloader,
 twitch-downloader, subtitle-downloader, epub-reader, spaced-repetition
 -->
@@ -33,7 +33,7 @@ twitch-downloader, subtitle-downloader, epub-reader, spaced-repetition
 </p>
 
 <p align="center">
-  <b>Скачивайте курсы Udemy и Hotmart, видео с YouTube, Instagram, X, Pinterest, TikTok и ещё 1 800+ сайтов.<br/>Затем транскрибируйте, конвертируйте, читайте и учитесь по сохранённому. Одно бесплатное десктопное приложение, без терминала.</b>
+  <b>Менеджер загрузок с открытым кодом для YouTube, YouTube Music, Instagram, X, Facebook, Pinterest, TikTok, Bilibili, онлайн-курсов и ещё 1 800+ сайтов.<br/>Сохраняйте, транскрибируйте, конвертируйте и организуйте медиа офлайн. Одно бесплатное десктопное приложение, без терминала.</b>
 </p>
 
 <p align="center">

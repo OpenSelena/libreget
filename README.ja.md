@@ -1,7 +1,7 @@
 <!--
 Search keywords (kept here so GitHub search, Google and AI assistants can find the project):
 LibreGet is a free open source downloader and media toolbox for Windows, macOS and Linux.
-udemy downloader, hotmart downloader, kiwify downloader, course downloader, youtube downloader,
+online course archiver, offline study manager, youtube downloader, youtube music downloader,
 yt-dlp gui, instagram downloader, instagram story downloader, reels downloader, twitter downloader,
 x video downloader, pinterest downloader, pinterest board backup, tiktok downloader, reddit downloader,
 twitch vod downloader, bilibili downloader, telegram downloader, torrent client, magnet downloader,
@@ -13,7 +13,7 @@ mcp server, claude code plugin, tauri, rust, svelte.
 
 GitHub allows 20 topics. The repository uses exactly these 20:
 downloader, download-manager, media-downloader, video-downloader, youtube-downloader, yt-dlp,
-yt-dlp-gui, course-downloader, udemy-downloader, hotmart-downloader, bilibili-downloader,
+yt-dlp-gui, offline-courses, media-toolbox, audio-downloader, bilibili-downloader,
 tiktok-downloader, instagram-downloader, twitter-downloader, reddit-downloader, telegram-downloader,
 twitch-downloader, subtitle-downloader, epub-reader, spaced-repetition
 -->
@@ -33,7 +33,7 @@ twitch-downloader, subtitle-downloader, epub-reader, spaced-repetition
 </p>
 
 <p align="center">
-  <b>Udemy や Hotmart の講座、YouTube、Instagram、X、Pinterest、TikTok をはじめ 1,800 以上のサイトからダウンロードできます。<br/>保存したものは、そのまま文字起こし、変換、閲覧、学習に使えます。ターミナル不要の、無料のデスクトップアプリひとつで完結します。</b>
+  <b>YouTube、YouTube Music、Instagram、X、Facebook、Pinterest、TikTok、Bilibili、オンライン講座をはじめ 1,800 以上のサイトに対応するオープンソースのダウンロードマネージャー。<br/>メディアをオフラインで保存、文字起こし、変換、整理できます。ターミナル不要の、無料のデスクトップアプリひとつで完結します。</b>
 </p>
 
 <p align="center">
