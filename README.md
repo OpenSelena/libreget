@@ -732,7 +732,7 @@ LibreGet is built on:
 - [Tauri 2](https://tauri.app/), [Rust](https://www.rust-lang.org/), and [SvelteKit](https://kit.svelte.dev/) with Svelte 5
 - [cat-catch](https://github.com/xifangczy/cat-catch), [SponsorBlock](https://sponsor.ajay.app/), [Return YouTube Dislike](https://returnyoutubedislike.com/), [FxTwitter](https://github.com/FixTweet/FixTwitter), and [Spicetify](https://spicetify.app/)
 
-LibreGet is a fork of [OmniGet](https://github.com/tonhowtf/omniget) by [Antonio Leandro](https://github.com/tonhowtf). It is maintained independently and is not affiliated with OmniGet or Antonio Leandro.
+LibreGet is an independent fork of [OmniGet](https://github.com/tonhowtf/omniget) and is not affiliated with OmniGet or [Antonio Leandro](https://github.com/tonhowtf). All ongoing updates, changes, and maintenance are developed by LibreGet creator [Igect](https://github.com/igect).
 
 ---
 
