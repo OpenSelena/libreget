@@ -1,7 +1,7 @@
 <!--
 Palavras-chave de busca (ficam aqui para a busca do GitHub, o Google e os assistentes de IA acharem o projeto):
 LibreGet é um downloader e caixa de ferramentas de mídia, gratuito e open source, para Windows, macOS e Linux.
-baixar curso udemy, baixar curso hotmart, baixar curso kiwify, downloader de cursos, baixar video youtube,
+arquivar cursos online, estudo offline, baixar video youtube, baixar youtube music,
 yt-dlp gui, baixar instagram, baixar story instagram, baixar reels, baixar video twitter, baixar video x,
 baixar pinterest, backup de board pinterest, baixar tiktok, baixar reddit, baixar vod twitch, baixar bilibili,
 baixar telegram, cliente torrent, magnet, baixar legendas, transcrição whisper, texto para fala, leitor epub,
@@ -23,7 +23,7 @@ leitor pdf, flashcards anki, repetição espaçada, player de música, spicetify
 </p>
 
 <p align="center">
-  <b>Baixe cursos da Udemy e da Hotmart, YouTube, Instagram, X, Pinterest, TikTok e mais de 1.800 outros sites.<br/>Depois transcreva, converta e gerencie o que salvou. Um único app de desktop, gratuito, sem terminal.</b>
+  <b>Gerenciador de downloads open source para YouTube, YouTube Music, Instagram, X, Facebook, Pinterest, TikTok, Bilibili, cursos online e mais de 1.800 outros sites.<br/>Salve, transcreva, converta e organize mídia offline. Um único app de desktop, gratuito, sem terminal.</b>
 </p>
 
 <p align="center">
