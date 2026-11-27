@@ -49,8 +49,8 @@ twitch-downloader, subtitle-downloader, epub-reader, spaced-repetition
 </p>
 
 <p align="center">
-  <a href="https://microsoftedge.microsoft.com/addons/detail/idgicdkhanahmhplpeamffngojdjjgdm"><img src="https://img.shields.io/badge/Microsoft_Edge-Add--ons-0078D7?style=for-the-badge&logo=microsoft-edge&logoColor=white" alt="Microsoft Edge Add-ons" /></a>
-  <a href="https://addons.mozilla.org/firefox/addon/libreget/"><img src="https://img.shields.io/badge/Firefox-AMO-FF7139?style=for-the-badge&logo=firefox-browser&logoColor=white" alt="Firefox Add-ons" /></a>
+  <a href="https://microsoftedge.microsoft.com/addons/detail/idgicdkhanahmhplpeamffngojdjjgdm"><img src="assets/readme/badge-edge.svg" alt="Microsoft Edge Add-ons" /></a>
+  <a href="https://addons.mozilla.org/firefox/addon/libreget/"><img src="assets/readme/badge-firefox.svg" alt="Firefox Add-ons" /></a>
 </p>
 
 <p align="center">
@@ -237,8 +237,8 @@ The companion browser extension source and standalone releases are maintained at
 
 ### Level 1: 1-click install from official stores (Microsoft Edge and Firefox)
 
-- **Microsoft Edge**: Install from [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/idgicdkhanahmhplpeamffngojdjjgdm).
-- **Firefox**: Install from [Mozilla Add-ons (AMO)](https://addons.mozilla.org/firefox/addon/libreget/).
+- <img src="assets/readme/icon-edge.svg" width="18" height="18" align="absmiddle" alt="Microsoft Edge" /> **Microsoft Edge**: Install from [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/idgicdkhanahmhplpeamffngojdjjgdm).
+- <img src="assets/readme/icon-firefox.svg" width="18" height="18" align="absmiddle" alt="Firefox" /> **Firefox**: Install from [Mozilla Add-ons (AMO)](https://addons.mozilla.org/firefox/addon/libreget/).
 
 Open LibreGet once, then go to **Settings → Plugins → Browser extension** and click **Pair extension** (the options page also connects on its own within a few seconds).
 
