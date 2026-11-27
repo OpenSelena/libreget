@@ -60,7 +60,7 @@ twitch-downloader, subtitle-downloader, epub-reader, spaced-repetition
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="assets/readme/created-by-dark.svg" />
       <source media="(prefers-color-scheme: light)" srcset="assets/readme/created-by-light.svg" />
-      <img src="assets/readme/created-by-light.svg" alt="Created by @igect" height="44" />
+      <img src="assets/readme/created-by-light.svg" alt="Created by Igect" height="44" />
     </picture>
   </a>
 </p>

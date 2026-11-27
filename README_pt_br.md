@@ -50,7 +50,7 @@ leitor pdf, flashcards anki, repetição espaçada, player de música, spicetify
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="assets/readme/created-by-dark.svg" />
       <source media="(prefers-color-scheme: light)" srcset="assets/readme/created-by-light.svg" />
-      <img src="assets/readme/created-by-light.svg" alt="Criado por @igect" height="44" />
+      <img src="assets/readme/created-by-light.svg" alt="Criado por Igect" height="44" />
     </picture>
   </a>
 </p>
