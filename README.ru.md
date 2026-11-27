@@ -56,7 +56,13 @@ twitch-downloader, subtitle-downloader, epub-reader, spaced-repetition
 </p>
 
 <p align="center">
-  <sub>Поддерживается <a href="https://github.com/igect">igect</a> под GPL-3.0</sub>
+  <a href="https://github.com/igect">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="assets/readme/created-by-dark.svg" />
+      <source media="(prefers-color-scheme: light)" srcset="assets/readme/created-by-light.svg" />
+      <img src="assets/readme/created-by-light.svg" alt="Создано Igect" height="44" />
+    </picture>
+  </a>
 </p>
 
 <p align="center">

@@ -46,7 +46,13 @@ spicetify, 下载管理器, tauri, rust, svelte.
 </p>
 
 <p align="center">
-  <sub>由 <a href="https://github.com/igect">igect</a> 在 GPL-3.0 协议下维护</sub>
+  <a href="https://github.com/igect">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="assets/readme/created-by-dark.svg" />
+      <source media="(prefers-color-scheme: light)" srcset="assets/readme/created-by-light.svg" />
+      <img src="assets/readme/created-by-light.svg" alt="由 Igect 创建" height="44" />
+    </picture>
+  </a>
 </p>
 
 <p align="center">

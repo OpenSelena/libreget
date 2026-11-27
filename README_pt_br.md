@@ -46,7 +46,13 @@ leitor pdf, flashcards anki, repetição espaçada, player de música, spicetify
 </p>
 
 <p align="center">
-  <sub>Mantido por <a href="https://github.com/igect">igect</a> sob GPL-3.0</sub>
+  <a href="https://github.com/igect">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="assets/readme/created-by-dark.svg" />
+      <source media="(prefers-color-scheme: light)" srcset="assets/readme/created-by-light.svg" />
+      <img src="assets/readme/created-by-light.svg" alt="Criado por Igect" height="44" />
+    </picture>
+  </a>
 </p>
 
 <p align="center">

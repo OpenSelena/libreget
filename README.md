@@ -49,9 +49,24 @@ twitch-downloader, subtitle-downloader, epub-reader, spaced-repetition
 </p>
 
 <p align="center">
+  <a href="https://microsoftedge.microsoft.com/addons/detail/idgicdkhanahmhplpeamffngojdjjgdm"><img src="assets/readme/badge-edge.svg" alt="Microsoft Edge Add-ons" /></a>
+  <a href="https://addons.mozilla.org/firefox/addon/libreget/"><img src="assets/readme/badge-firefox.svg" alt="Firefox Add-ons" /></a>
+</p>
+
+<p align="center">
   <a href="#download-and-install"><img src="https://img.shields.io/badge/Download_for_Windows,_macOS_or_Linux-→-F28500?style=for-the-badge" alt="Download LibreGet" height="40" /></a>
   &nbsp;
   <a href="#the-tools-section-158-tools-in-25-categories"><img src="https://img.shields.io/badge/See_the_158_tools-→-3D5BF0?style=for-the-badge" alt="See the Tools section" height="40" /></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/igect">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="assets/readme/created-by-dark.svg" />
+      <source media="(prefers-color-scheme: light)" srcset="assets/readme/created-by-light.svg" />
+      <img src="assets/readme/created-by-light.svg" alt="Created by Igect" height="44" />
+    </picture>
+  </a>
 </p>
 
 ---
@@ -220,11 +235,20 @@ The companion browser extension source and standalone releases are maintained at
   <img src="assets/readme/extension.png" alt="Penguin mascot plugging a cable from a browser window into the LibreGet app window, with cookies travelling along it and a padlock and a house above it: the pairing stays on your own machine." width="100%" />
 </p>
 
-### Level 1: from inside the app (no downloads, no zip files)
+### Level 1: 1-click install from official stores (Microsoft Edge and Firefox)
+
+- <img src="assets/readme/icon-edge.svg" width="18" height="18" align="absmiddle" alt="Microsoft Edge" /> **Microsoft Edge**: Install from [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/idgicdkhanahmhplpeamffngojdjjgdm).
+- <img src="assets/readme/icon-firefox.svg" width="18" height="18" align="absmiddle" alt="Firefox" /> **Firefox**: Install from [Mozilla Add-ons (AMO)](https://addons.mozilla.org/firefox/addon/libreget/).
+
+Open LibreGet once, then go to **Settings → Plugins → Browser extension** and click **Pair extension** (the options page also connects on its own within a few seconds).
+
+### Level 2: Chrome, Brave, and other Chromium browsers (from inside the app)
+
+Until the Chrome Web Store listing is published, install from the bundled files inside LibreGet:
 
 1. Open LibreGet and install it if you have not. Launch it once.
 2. Go to **Settings → Plugins → Browser extension**. Click **Update / Install** next to Chrome. LibreGet copies the extension that ships inside it to a folder and opens that folder for you.
-3. Open Chrome (Edge, Brave and other Chromium browsers work the same way) and type `chrome://extensions` in the address bar.
+3. Open Chrome (Brave and other Chromium browsers work the same way) and type `chrome://extensions` in the address bar.
 4. Turn on **Developer mode** with the switch in the top right corner.
 5. Click **Load unpacked** and pick the folder LibreGet just opened.
 6. The LibreGet icon appears in the toolbar. An options page opens on its own and says it is looking for the app.
@@ -232,13 +256,9 @@ The companion browser extension source and standalone releases are maintained at
 
 From now on, visit any supported page and click the icon. The page, its cookies and its title go to LibreGet and the download starts. Your cookies also show up in **Settings → Cookies**, where the Courses plugin and the Instagram, X and Pinterest tools reuse them.
 
-### Level 2: from the release zip
+### Level 3: from the release zip and manual pairing
 
-Every release ships pre-built extension archives. Download `libreget-chrome-extension.zip` or `libreget-firefox-extension.zip` from the official [OpenSelena/libreget-extension releases](https://github.com/OpenSelena/libreget-extension/releases/latest), unzip it, then follow steps 3 to 7 above pointing **Load unpacked** at the unzipped folder. Use this if you keep the app on one machine and the browser on another, or if you are installing for someone else.
-
-### Level 3: Firefox, other browsers and manual pairing
-
-Firefox: install directly from Mozilla Add-ons (pending AMO approval) or download `libreget-firefox-extension.zip` from [libreget-extension releases](https://github.com/OpenSelena/libreget-extension/releases/latest). For temporary testing: **Settings → Plugins → Browser extension → Update / Install** next to Firefox, then open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on** and pick `manifest.json` in the exported folder. Safari is not supported yet because Safari extensions must ship through the App Store.
+Every release ships pre-built extension archives. Download `libreget-chrome-extension.zip` or `libreget-firefox-extension.zip` from the official [OpenSelena/libreget-extension releases](https://github.com/OpenSelena/libreget-extension/releases/latest), unzip it, then point **Load unpacked** (or `about:debugging#/runtime/this-firefox` → **Load Temporary Add-on** in Firefox) at the unzipped folder. Use this if you keep the app on one machine and the browser on another, or if you want to test an unreleased build. Safari is not supported yet because Safari extensions must ship through the App Store.
 
 Manual pairing: if **Pair extension** times out, open the extension's options page (right-click the icon → Options), then in LibreGet reveal and copy the **Pairing token** and paste it into the options page. The endpoint URL is detected automatically. The app listens on `127.0.0.1` ports 47720 to 47729 and the token is generated per install, so nothing leaves your machine.
 
@@ -712,7 +732,7 @@ LibreGet is built on:
 - [Tauri 2](https://tauri.app/), [Rust](https://www.rust-lang.org/), and [SvelteKit](https://kit.svelte.dev/) with Svelte 5
 - [cat-catch](https://github.com/xifangczy/cat-catch), [SponsorBlock](https://sponsor.ajay.app/), [Return YouTube Dislike](https://returnyoutubedislike.com/), [FxTwitter](https://github.com/FixTweet/FixTwitter), and [Spicetify](https://spicetify.app/)
 
-LibreGet is a fork of [OmniGet](https://github.com/tonhowtf/omniget) by [Antonio Leandro](https://github.com/tonhowtf). It is maintained independently and is not affiliated with OmniGet or Antonio Leandro.
+LibreGet is an independent fork of [OmniGet](https://github.com/tonhowtf/omniget) and is not affiliated with OmniGet or [Antonio Leandro](https://github.com/tonhowtf). All ongoing updates, changes, and maintenance are developed by LibreGet creator [Igect](https://github.com/igect).
 
 ---
 
